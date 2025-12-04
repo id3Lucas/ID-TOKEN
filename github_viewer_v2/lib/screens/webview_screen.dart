@@ -36,44 +36,54 @@ class _WebViewScreenState extends State<WebViewScreen> {
       }
       String htmlContent = htmlResponse.body;
 
-      // 2. Find relative CSS links
-      final RegExp cssLinkRegex = RegExp(
+      // 2. Define two regex patterns: one for double-quoted href, one for single-quoted href
+      final RegExp cssLinkRegexDouble = RegExp(
         r'<link[^>]*?href="([^"]+\.css)"[^>]*?rel="stylesheet"[^>]*?>',
         caseSensitive: false,
       );
+      final RegExp cssLinkRegexSingle = RegExp(
+        r"<link[^>]*?href='([^']+\.css)'[^>]*?rel='stylesheet'[^>]*?>",
+        caseSensitive: false,
+      );
 
-      final matches = cssLinkRegex.allMatches(htmlContent);
-      if (matches.isEmpty) {
-        await _controller.loadHtmlString(htmlContent);
-        return; // No CSS to process
-      }
+      // Collect all matches from both regexes
+      List<RegExpMatch> allMatches = [];
+      allMatches.addAll(cssLinkRegexDouble.allMatches(htmlContent));
+      allMatches.addAll(cssLinkRegexSingle.allMatches(htmlContent));
       
+      // Sort matches by their start index in reverse order to avoid issues with string replacement indices
+      allMatches.sort((a, b) => b.start.compareTo(a.start));
+
       // Get the base URL to resolve relative paths
       final baseUrl = widget.fileUrl.substring(0, widget.fileUrl.lastIndexOf('/') + 1);
 
-      for (final match in matches) {
+      for (final match in allMatches) {
         final originalLinkTag = match.group(0)!;
-        final cssPath = match.group(1)!;
+        final cssRelativePath = match.group(1)!; // Capture group 1 is the path
 
-        // Don't process absolute URLs
-        if (cssPath.startsWith('http://') || cssPath.startsWith('https://')) {
+        // Ensure it's a relative path (not http/https)
+        if (cssRelativePath.startsWith('http://') || cssRelativePath.startsWith('https://') || cssRelativePath.startsWith('//')) {
           continue;
         }
 
-        // 3. Download the CSS content
-        final cssUrl = baseUrl + cssPath;
-        final cssResponse = await http.get(Uri.parse(cssUrl));
+        // 3. Construct the full CSS URL using Uri.resolve for robustness
+        final cssUri = Uri.parse(baseUrl).resolve(cssRelativePath);
+
+        // 4. Download the CSS content
+        final cssResponse = await http.get(cssUri);
         
         if (cssResponse.statusCode == 200) {
-          // 4. Embed the CSS into a <style> tag
+          // 5. Embed the CSS into a <style> tag
           final cssContent = cssResponse.body;
           final styleTag = '<style>$cssContent</style>';
-          htmlContent = htmlContent.replaceFirst(originalLinkTag, styleTag);
+          
+          // Replace the original <link> tag with the <style> tag
+          htmlContent = htmlContent.replaceRange(match.start, match.end, styleTag);
         }
         // If CSS download fails, we simply leave the <link> tag as is.
       }
 
-      // 5. Load the final HTML
+      // 6. Load the final HTML
       await _controller.loadHtmlString(htmlContent);
 
     } catch (e) {
