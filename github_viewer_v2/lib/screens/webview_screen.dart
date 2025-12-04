@@ -24,17 +24,58 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted);
     
-    _loadHtmlContent();
+    _loadHtmlWithEmbeddedCss();
   }
 
-  Future<void> _loadHtmlContent() async {
+  Future<void> _loadHtmlWithEmbeddedCss() async {
     try {
-      final response = await http.get(Uri.parse(widget.fileUrl));
-      if (response.statusCode == 200) {
-        await _controller.loadHtmlString(response.body);
-      } else {
-        throw Exception('Failed to load file content. Status code: ${response.statusCode}');
+      // 1. Download the HTML content
+      final htmlResponse = await http.get(Uri.parse(widget.fileUrl));
+      if (htmlResponse.statusCode != 200) {
+        throw Exception('Failed to load HTML. Status code: ${htmlResponse.statusCode}');
       }
+      String htmlContent = htmlResponse.body;
+
+      // 2. Find relative CSS links
+      final RegExp cssLinkRegex = RegExp(
+        r'<link[^>]*?href="([^"]+\.css)"[^>]*?rel="stylesheet"[^>]*?>',
+        caseSensitive: false,
+      );
+
+      final matches = cssLinkRegex.allMatches(htmlContent);
+      if (matches.isEmpty) {
+        await _controller.loadHtmlString(htmlContent);
+        return; // No CSS to process
+      }
+      
+      // Get the base URL to resolve relative paths
+      final baseUrl = widget.fileUrl.substring(0, widget.fileUrl.lastIndexOf('/') + 1);
+
+      for (final match in matches) {
+        final originalLinkTag = match.group(0)!;
+        final cssPath = match.group(1)!;
+
+        // Don't process absolute URLs
+        if (cssPath.startsWith('http://') || cssPath.startsWith('https://')) {
+          continue;
+        }
+
+        // 3. Download the CSS content
+        final cssUrl = baseUrl + cssPath;
+        final cssResponse = await http.get(Uri.parse(cssUrl));
+        
+        if (cssResponse.statusCode == 200) {
+          // 4. Embed the CSS into a <style> tag
+          final cssContent = cssResponse.body;
+          final styleTag = '<style>$cssContent</style>';
+          htmlContent = htmlContent.replaceFirst(originalLinkTag, styleTag);
+        }
+        // If CSS download fails, we simply leave the <link> tag as is.
+      }
+
+      // 5. Load the final HTML
+      await _controller.loadHtmlString(htmlContent);
+
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
