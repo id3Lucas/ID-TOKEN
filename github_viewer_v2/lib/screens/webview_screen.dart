@@ -24,13 +24,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   void initState() {
     super.initState();
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setPermissionRequestHandler((request) {
-        // Grant all permissions requested by the web content.
-        // In a production app, you might want to be more selective,
-        // but for this use case, granting access is the goal.
-        request.grant();
-      });
+      ..setJavaScriptMode(JavaScriptMode.unrestricted);
     
     _loadHtmlWithEmbeddedCss();
   }
@@ -47,7 +41,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       String htmlContent = htmlResponse.body;
       developer.log('HTML content downloaded. Length: ${htmlContent.length}', name: 'WebViewScreen');
 
-      // 2. Define two very permissive regex patterns: one for double-quoted href, one for single-quoted href
+      // 2. Define two regex patterns: one for double-quoted href, one for single-quoted href
       // This will match ANY <link> tag with an href ending in .css, regardless of rel attribute.
       final RegExp cssLinkRegexDouble = RegExp(
         r'<link[^>]*?href="([^"]+\.css)"[^>]*?>', // Removed rel="stylesheet" constraint
