@@ -35,18 +35,19 @@ class _WebViewScreenState extends State<WebViewScreen> {
       // 1. Download the HTML content
       final htmlResponse = await http.get(Uri.parse(widget.fileUrl));
       if (htmlResponse.statusCode != 200) {
-        throw Exception('Failed to load HTML. Status code: ${htmlResponse.statusCode}');
+        throw Exception('Failed to load HTML from ${widget.fileUrl}. Status code: ${htmlResponse.statusCode}');
       }
       String htmlContent = htmlResponse.body;
       developer.log('HTML content downloaded. Length: ${htmlContent.length}', name: 'WebViewScreen');
 
       // 2. Define two regex patterns: one for double-quoted href, one for single-quoted href
+      // Slightly adjusted regex to prioritize rel="stylesheet" but still be flexible
       final RegExp cssLinkRegexDouble = RegExp(
-        r'<link[^>]*?href="([^"]+\.css)"[^>]*?rel="stylesheet"[^>]*?>',
+        r'<link[^>]*?rel="stylesheet"[^>]*?href="([^"]+\.css)"[^>]*?>',
         caseSensitive: false,
       );
       final RegExp cssLinkRegexSingle = RegExp(
-        r"<link[^>]*?href='([^']+\.css)'[^>]*?rel='stylesheet'[^>]*?>",
+        r"<link[^>]*?rel='stylesheet'[^>]*?href='([^']+\.css)'[^>]*?>",
         caseSensitive: false,
       );
 
@@ -56,6 +57,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
       allMatches.addAll(cssLinkRegexSingle.allMatches(htmlContent));
       
       developer.log('Found ${allMatches.length} CSS link matches.', name: 'WebViewScreen');
+      if (allMatches.isEmpty) {
+        developer.log('No external CSS links found or matched.', name: 'WebViewScreen');
+      }
 
       // Sort matches by their start index in reverse order to avoid issues with string replacement indices
       allMatches.sort((a, b) => b.start.compareTo(a.start));
@@ -93,8 +97,11 @@ class _WebViewScreenState extends State<WebViewScreen> {
           htmlContent = htmlContent.replaceRange(match.start, match.end, styleTag);
           developer.log('Replaced $originalLinkTag with <style> tag.', name: 'WebViewScreen');
         } else {
-          developer.log('Failed to download CSS from $cssUri. Status code: ${cssResponse.statusCode}', name: 'WebViewScreen');
-          // If CSS download fails, we simply leave the <link> tag as is.
+          final errorMsg = 'Failed to download CSS from $cssUri. Status code: ${cssResponse.statusCode}';
+          developer.log(errorMsg, name: 'WebViewScreen');
+          // Instead of throwing, we'll let it pass but log the error visibly
+          // If all CSS files fail, the user will still see the unstyled HTML
+          // but at least this specific CSS error is logged.
         }
       }
 
@@ -103,9 +110,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
       developer.log('Final HTML loaded into WebView.', name: 'WebViewScreen');
 
     } catch (e) {
-      developer.log('Error loading HTML with embedded CSS: $e', name: 'WebViewScreen', error: e);
+      final detailedError = 'Error in _loadHtmlWithEmbeddedCss: ${e.toString()}';
+      developer.log(detailedError, name: 'WebViewScreen', error: e);
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = detailedError; // Display the error directly in the app
       });
     } finally {
       setState(() {
