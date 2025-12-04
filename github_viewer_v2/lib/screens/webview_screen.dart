@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'dart:developer' as developer; // Import for developer.log
+import 'dart:developer' as developer; // Keep developer.log for internal tracking
 
 class WebViewScreen extends StatefulWidget {
   final String fileUrl;
@@ -18,12 +18,19 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
   String? _errorMessage;
+  // Removed _debugMessages and _addDebugMessage
 
   @override
   void initState() {
     super.initState();
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted);
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setPermissionRequestHandler((request) {
+        // Grant all permissions requested by the web content.
+        // In a production app, you might want to be more selective,
+        // but for this use case, granting access is the goal.
+        request.grant();
+      });
     
     _loadHtmlWithEmbeddedCss();
   }
@@ -40,14 +47,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
       String htmlContent = htmlResponse.body;
       developer.log('HTML content downloaded. Length: ${htmlContent.length}', name: 'WebViewScreen');
 
-      // 2. Define two regex patterns: one for double-quoted href, one for single-quoted href
-      // Slightly adjusted regex to prioritize rel="stylesheet" but still be flexible
+      // 2. Define two very permissive regex patterns: one for double-quoted href, one for single-quoted href
+      // This will match ANY <link> tag with an href ending in .css, regardless of rel attribute.
       final RegExp cssLinkRegexDouble = RegExp(
-        r'<link[^>]*?rel="stylesheet"[^>]*?href="([^"]+\.css)"[^>]*?>',
+        r'<link[^>]*?href="([^"]+\.css)"[^>]*?>', // Removed rel="stylesheet" constraint
         caseSensitive: false,
       );
       final RegExp cssLinkRegexSingle = RegExp(
-        r"<link[^>]*?rel='stylesheet'[^>]*?href='([^']+\.css)'[^>]*?>",
+        r"<link[^>]*?href='([^']+\.css)'[^>]*?>", // Removed rel='stylesheet' constraint
         caseSensitive: false,
       );
 
@@ -56,7 +63,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       allMatches.addAll(cssLinkRegexDouble.allMatches(htmlContent));
       allMatches.addAll(cssLinkRegexSingle.allMatches(htmlContent));
       
-      developer.log('Found ${allMatches.length} CSS link matches.', name: 'WebViewScreen');
+      developer.log('Found ${allMatches.length} CSS link matches (permissive regex).', name: 'WebViewScreen');
       if (allMatches.isEmpty) {
         developer.log('No external CSS links found or matched.', name: 'WebViewScreen');
       }
@@ -99,9 +106,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
         } else {
           final errorMsg = 'Failed to download CSS from $cssUri. Status code: ${cssResponse.statusCode}';
           developer.log(errorMsg, name: 'WebViewScreen');
-          // Instead of throwing, we'll let it pass but log the error visibly
-          // If all CSS files fail, the user will still see the unstyled HTML
-          // but at least this specific CSS error is logged.
+          // Display a message in the app if CSS download fails
+          _errorMessage = "Could not load CSS from $cssRelativePath: Status ${cssResponse.statusCode}";
         }
       }
 
