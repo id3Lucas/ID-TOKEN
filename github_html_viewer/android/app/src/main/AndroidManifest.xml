@@ -29,7 +29,7 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:scheme="github_html_viewer" android:host="callback"/>
+                <data android:scheme="http" android:host="localhost" android:port="8080" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
