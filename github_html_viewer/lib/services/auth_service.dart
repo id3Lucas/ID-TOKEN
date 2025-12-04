@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:app_links/app_links.dart';
 
 import '../constants.dart';
 
@@ -10,25 +9,14 @@ class AuthService {
   static const String _githubAccessTokenKey = 'github_access_token';
 
   Future<void> signInWithGitHub() async {
-    final AppLinks appLinks = AppLinks();
-
-    appLinks.uriLinkStream.listen((Uri? uri) async {
-      if (uri != null && uri.scheme == 'github_html_viewer') {
-        final code = uri.queryParameters['code'];
-        if (code != null) {
-          await _exchangeCodeForToken(code);
-        }
-      }
-    });
-
     if (await canLaunchUrl(Uri.parse(githubAuthUrl))) {
-      await launchUrl(Uri.parse(githubAuthUrl));
+      await launchUrl(Uri.parse(githubAuthUrl), mode: LaunchMode.inAppWebView);
     } else {
       throw 'Could not launch $githubAuthUrl';
     }
   }
 
-  Future<void> _exchangeCodeForToken(String code) async {
+  Future<bool> exchangeCodeForToken(String code) async {
     final response = await http.post(
       Uri.parse(githubTokenUrl),
       headers: {
@@ -48,11 +36,12 @@ class AuthService {
       final String? accessToken = data['access_token'];
       if (accessToken != null) {
         await _saveAccessToken(accessToken);
+        return true;
       } else {
         throw 'Access token not found in response';
       }
     } else {
-      throw 'Failed to exchange code for token: ${response.statusCode}';
+      throw 'Failed to exchange code for token: ${response.body}';
     }
   }
 
