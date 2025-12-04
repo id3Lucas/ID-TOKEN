@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'dart:developer' as developer; // Import for developer.log
 
 class WebViewScreen extends StatefulWidget {
   final String fileUrl;
@@ -29,12 +30,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _loadHtmlWithEmbeddedCss() async {
     try {
+      developer.log('Attempting to load HTML from: ${widget.fileUrl}', name: 'WebViewScreen');
+
       // 1. Download the HTML content
       final htmlResponse = await http.get(Uri.parse(widget.fileUrl));
       if (htmlResponse.statusCode != 200) {
         throw Exception('Failed to load HTML. Status code: ${htmlResponse.statusCode}');
       }
       String htmlContent = htmlResponse.body;
+      developer.log('HTML content downloaded. Length: ${htmlContent.length}', name: 'WebViewScreen');
 
       // 2. Define two regex patterns: one for double-quoted href, one for single-quoted href
       final RegExp cssLinkRegexDouble = RegExp(
@@ -51,42 +55,55 @@ class _WebViewScreenState extends State<WebViewScreen> {
       allMatches.addAll(cssLinkRegexDouble.allMatches(htmlContent));
       allMatches.addAll(cssLinkRegexSingle.allMatches(htmlContent));
       
+      developer.log('Found ${allMatches.length} CSS link matches.', name: 'WebViewScreen');
+
       // Sort matches by their start index in reverse order to avoid issues with string replacement indices
       allMatches.sort((a, b) => b.start.compareTo(a.start));
 
       // Get the base URL to resolve relative paths
       final baseUrl = widget.fileUrl.substring(0, widget.fileUrl.lastIndexOf('/') + 1);
+      developer.log('Base URL for resolving CSS: $baseUrl', name: 'WebViewScreen');
 
       for (final match in allMatches) {
         final originalLinkTag = match.group(0)!;
         final cssRelativePath = match.group(1)!; // Capture group 1 is the path
 
+        developer.log('Processing CSS link: $originalLinkTag, relative path: $cssRelativePath', name: 'WebViewScreen');
+
         // Ensure it's a relative path (not http/https)
         if (cssRelativePath.startsWith('http://') || cssRelativePath.startsWith('https://') || cssRelativePath.startsWith('//')) {
+          developer.log('Skipping absolute CSS path: $cssRelativePath', name: 'WebViewScreen');
           continue;
         }
 
         // 3. Construct the full CSS URL using Uri.resolve for robustness
         final cssUri = Uri.parse(baseUrl).resolve(cssRelativePath);
+        developer.log('Constructed CSS URL: $cssUri', name: 'WebViewScreen');
 
         // 4. Download the CSS content
         final cssResponse = await http.get(cssUri);
         
         if (cssResponse.statusCode == 200) {
+          developer.log('CSS downloaded successfully from: $cssUri', name: 'WebViewScreen');
           // 5. Embed the CSS into a <style> tag
           final cssContent = cssResponse.body;
           final styleTag = '<style>$cssContent</style>';
           
           // Replace the original <link> tag with the <style> tag
           htmlContent = htmlContent.replaceRange(match.start, match.end, styleTag);
+          developer.log('Replaced $originalLinkTag with <style> tag.', name: 'WebViewScreen');
+        } else {
+          developer.log('Failed to download CSS from $cssUri. Status code: ${cssResponse.statusCode}', name: 'WebViewScreen');
+          // If CSS download fails, we simply leave the <link> tag as is.
         }
-        // If CSS download fails, we simply leave the <link> tag as is.
       }
 
       // 6. Load the final HTML
       await _controller.loadHtmlString(htmlContent);
+      developer.log('Final HTML loaded into WebView.', name: 'WebViewScreen');
 
     } catch (e) {
+      developer.log('Error loading HTML with embedded CSS: $e', name: 'WebViewScreen', error: e);
       setState(() {
         _errorMessage = e.toString();
       });
