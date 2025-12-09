@@ -65,6 +65,16 @@ The primary goal of this session was to improve the rendering of HTML files with
 11. **AI Studio Suggestion: iOS Specific - 120Hz (ProMotion) Issue (Completed):**
     - Added `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` to `ios/Runner/Info.plist`. This aims to unlock the full frame rate (120Hz) for `WKWebView`s on compatible iOS devices, providing a smoother experience.
 
+12. **AI Studio Suggestion: Are you in Debug Mode? (Tested in Release Mode):**
+    - Confirmed with the user the importance of testing in Release mode for accurate performance assessment. User reported testing in Release mode for the HTML content.
+
+13. **Investigation: Flip Card Smoothness (Initial Optimizations Implemented):**
+    - Identified the "flip card" implementation in `PresentationView.html` and `styles.css`.
+    - Implemented optimizations:
+        a. Removed conflicting CSS `transition` property from `.holo-layer` in `styles.css`.
+        b. Removed expensive dynamic `box-shadow` animation from JavaScript in `PresentationView.html`.
+    - **User Feedback:** User reported that the improvement was "not very great." Further investigation into flip card fluidity is needed.
+
 ## Important Environment Notes
 
 - The Flutter SDK is not in the system's `PATH`.
