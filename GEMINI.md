@@ -36,6 +36,20 @@ The primary goal of this session was to improve the rendering of HTML files with
         a. **Lazy Loading Images:** Automatically added `loading="lazy"` to all `<img>` tags.
         b. **Deferring JavaScript:** Automatically added the `defer` attribute to `<script>` tags to make their loading non-blocking.
 
+6.  **Update Project Dependencies (Completed):**
+    - Executed `flutter pub upgrade`.
+    - `shared_preferences` and `webview_flutter_wkwebview` were updated.
+    - Noted that 6 packages had incompatible constraints, requiring manual intervention for full upgrade.
+
+7.  **Implement Caching for API Requests (Completed):**
+    - The `shared_preferences` package was verified/added.
+    - Caching logic was integrated into `github_viewer_v2/lib/services/github_service.dart`.
+    - Both `getRepositories()` and `getRepositoryContents()` methods now check local cache first, then fetch from the network if data is not present or stale, and finally store network responses in `shared_preferences`.
+
+8.  **Initiate Shimmer Effect for Loading (In Progress):**
+    - The `shimmer` package was added to the project dependencies.
+    - Next steps involve modifying UI screens (e.g., `RepoListScreen`) to replace standard loading indicators with shimmering placeholders.
+
 ## Important Environment Notes
 
 - The Flutter SDK is not in the system's `PATH`.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; // Import shimmer package
 import '../services/github_service.dart';
 import '../services/auth_service.dart';
 import '../models/repository.dart';
@@ -26,6 +27,41 @@ class _RepoListScreenState extends State<RepoListScreen> {
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
+  // Helper widget for the shimmer loading effect
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      itemCount: 10, // Number of shimmer items
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.white,
+              radius: 24,
+            ),
+            title: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.7,
+                height: 16.0,
+                color: Colors.white,
+              ),
+            ),
+            subtitle: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.5,
+                height: 14.0,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +79,8 @@ class _RepoListScreenState extends State<RepoListScreen> {
         future: _repositoriesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            // Replace CircularProgressIndicator with shimmer effect
+            return _buildShimmerList();
           } else if (snapshot.hasError) {
             return Center(
               child: Padding(
