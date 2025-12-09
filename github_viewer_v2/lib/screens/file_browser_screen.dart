@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer; // Add developer import
 import '../services/github_service.dart';
 import '../models/repository.dart';
 
@@ -26,6 +27,7 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
 
   void _fetchContents() {
     setState(() {
+      developer.log('Fetching contents for ${widget.owner}/${widget.repoName} at path: $_currentPath', name: 'FileBrowserScreen'); // Log fetch
       _contentsFuture = _githubService.getRepositoryContents(
         widget.owner,
         widget.repoName,
@@ -78,11 +80,17 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
+              developer.log('Error fetching contents: ${snapshot.error}', name: 'FileBrowserScreen'); // Log error
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              developer.log('No contents found for ${widget.owner}/${widget.repoName} at path: $_currentPath', name: 'FileBrowserScreen'); // Log empty
               return const Center(child: Text('No contents found in this directory.'));
             } else {
               final contents = snapshot.data!;
+              developer.log('Contents received for ${widget.owner}/${widget.repoName} at path: $_currentPath:', name: 'FileBrowserScreen'); // Log list
+              for (var content in contents) {
+                developer.log('- Name: ${content.name}, Type: ${content.type}, Path: ${content.path}', name: 'FileBrowserScreen');
+              }
               return ListView.builder(
                 itemCount: contents.length,
                 itemBuilder: (context, index) {
