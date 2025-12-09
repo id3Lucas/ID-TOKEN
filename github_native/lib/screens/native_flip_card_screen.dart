@@ -138,7 +138,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
                     _buildCardFace(
                       isFront: false,
                       // Apply inverse transform to back face to keep text readable
-                      transform: Matrix4.identity().rotateY(math.pi),
+                      transform: Matrix4.identity()..rotateY(math.pi),
                     ),
                     // Front of the card
                     _buildCardFace(
