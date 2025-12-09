@@ -348,25 +348,31 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
             ],
           ),
           // Photo area
-          Container(
-            width: 150,
-            height: 150,
-            margin: const EdgeInsets.only(bottom: 8), // margin: auto auto 10px auto
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _primaryColor, width: 4), // padding 4px + 2px border (simulated)
-              image: const DecorationImage(
-                image: AssetImage('assets/photo.jpg'), // User-provided image name
-                fit: BoxFit.cover,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _primaryColor.withOpacity(0.4),
-                  blurRadius: 8,
-                  spreadRadius: 2,
+          Builder(
+            builder: (context) {
+              final cardWidth = MediaQuery.of(context).size.width; // Need cardWidth here
+              final photoSize = math.max(100.0, math.min(cardWidth * 0.3, 150.0)); // clamp(100px, 30vw, 150px)
+              return Container(
+                width: photoSize,
+                height: photoSize,
+                margin: const EdgeInsets.only(bottom: 4), // margin: auto auto 10px auto, reduced
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _primaryColor, width: 4), // padding 4px + 2px border (simulated)
+                  image: const DecorationImage(
+                    image: AssetImage('assets/photo.jpg'), // User-provided image name
+                    fit: BoxFit.cover,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryColor.withOpacity(0.4),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            }
           ),
           // Name
           Flexible( // Make Flexible
