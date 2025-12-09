@@ -18,7 +18,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
   String? _errorMessage;
-  // Removed _debugMessages and _addDebugMessage
 
   @override
   void initState() {
@@ -26,135 +25,87 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted);
     
-    _loadHtmlWithEmbeddedCss();
+    _loadHtmlWithBaseUrl();
   }
 
-  Future<void> _loadHtmlWithEmbeddedCss() async {
+  Future<void> _loadHtmlWithBaseUrl() async {
     try {
-      developer.log('Attempting to load HTML from: ${widget.fileUrl}', name: 'WebViewScreen');
-
-      // 1. Download the HTML content
+      developer.log('Fetching HTML from: ${widget.fileUrl}', name: 'WebViewScreen');
       final htmlResponse = await http.get(Uri.parse(widget.fileUrl));
-      if (htmlResponse.statusCode != 200) {
-        throw Exception('Failed to load HTML from ${widget.fileUrl}. Status code: ${htmlResponse.statusCode}');
-      }
-      String htmlContent = htmlResponse.body;
-      developer.log('HTML content downloaded. Length: ${htmlContent.length}', name: 'WebViewScreen');
 
-      // 2. Define two regex patterns: one for double-quoted href, one for single-quoted href
-      // This will match ANY <link> tag with an href ending in .css, regardless of rel attribute.
-      final RegExp cssLinkRegexDouble = RegExp(
-        r'<link[^>]*?href="([^"]+\.css)"[^>]*?>', // Removed rel="stylesheet" constraint
-        caseSensitive: false,
-      );
-      final RegExp cssLinkRegexSingle = RegExp(
-        r"<link[^>]*?href='([^']+\.css)'[^>]*?>", // Removed rel='stylesheet' constraint
-        caseSensitive: false,
-      );
-
-      // Collect all matches from both regexes
-      List<RegExpMatch> allMatches = [];
-      allMatches.addAll(cssLinkRegexDouble.allMatches(htmlContent));
-      allMatches.addAll(cssLinkRegexSingle.allMatches(htmlContent));
-      
-      developer.log('Found ${allMatches.length} CSS link matches (permissive regex).', name: 'WebViewScreen');
-      if (allMatches.isEmpty) {
-        developer.log('No external CSS links found or matched.', name: 'WebViewScreen');
-      }
-
-      final baseUrl = widget.fileUrl.substring(0, widget.fileUrl.lastIndexOf('/') + 1);
-      developer.log('Base URL for resolving CSS: $baseUrl', name: 'WebViewScreen');
-
-      // Create a list of futures for parallel CSS downloads
-      List<Future<Map<String, String?>>> cssDownloadFutures = [];
-      List<Map<String, dynamic>> cssLinkDetails = []; // To store original tag, path, and match details
-
-      for (final match in allMatches) {
-        final originalLinkTag = match.group(0)!;
-        final cssRelativePath = match.group(1)!;
-
-        // Ensure it's a relative path (not http/https)
-        if (cssRelativePath.startsWith('http://') || cssRelativePath.startsWith('https://') || cssRelativePath.startsWith('//')) {
-          developer.log('Skipping absolute CSS path: $cssRelativePath', name: 'WebViewScreen');
-          continue;
-        }
-
-        final cssUri = Uri.parse(baseUrl).resolve(cssRelativePath);
-        developer.log('Scheduling CSS download for: $cssUri', name: 'WebViewScreen');
-
-        cssLinkDetails.add({
-          'match': match,
-          'originalLinkTag': originalLinkTag,
-          'cssRelativePath': cssRelativePath,
-          'cssUri': cssUri,
-        });
-
-        cssDownloadFutures.add(
-          http.get(cssUri).then((response) {
-            if (response.statusCode == 200) {
-              developer.log('CSS downloaded successfully from: $cssUri', name: 'WebViewScreen');
-              return {'cssContent': response.body, 'cssUri': cssUri.toString()};
-            } else {
-              developer.log('Failed to download CSS from $cssUri. Status code: ${response.statusCode}', name: 'WebViewScreen');
-              return {'cssContent': null, 'cssUri': cssUri.toString()};
-            }
-          }).catchError((e) {
-            developer.log('Error downloading CSS from $cssUri: $e', name: 'WebViewScreen');
-            return {'cssContent': null, 'cssUri': cssUri.toString()};
-          })
-        );
-      }
-
-      // Wait for all CSS downloads to complete
-      final List<Map<String, String?>> downloadedCssResults = await Future.wait(cssDownloadFutures);
-
-      // Sort matches by their start index in reverse order to avoid issues with string replacement indices
-      // This step is crucial for `replaceRange` to work correctly when multiple replacements occur.
-      cssLinkDetails.sort((a, b) => (b['match'] as RegExpMatch).start.compareTo((a['match'] as RegExpMatch).start));
-
-      // Process downloaded CSS and embed into HTML
-      for (int i = 0; i < cssLinkDetails.length; i++) {
-        final detail = cssLinkDetails[i];
-        final match = detail['match'] as RegExpMatch;
-        final originalLinkTag = detail['originalLinkTag'] as String;
-        final cssRelativePath = detail['cssRelativePath'] as String;
-        final cssUri = detail['cssUri'] as Uri;
+      if (htmlResponse.statusCode == 200) {
+        String htmlContent = htmlResponse.body;
         
-        // Find the corresponding downloaded content in the `downloadedCssResults`
-        // We need to match by cssUri because the order of cssLinkDetails might be different after sorting
-        final downloadedResult = downloadedCssResults.firstWhere(
-          (result) => result['cssUri'] == cssUri.toString(),
-          orElse: () => {'cssContent': null, 'cssUri': cssUri.toString()} // Fallback
-        );
+        final String directoryBaseUrl = Uri.parse(widget.fileUrl).resolve('.').toString();
 
-        final cssContent = downloadedResult['cssContent'];
+        // Define two regex patterns: one for double-quoted href, one for single-quoted href
+        final RegExp cssLinkRegexDouble = RegExp(r'<link[^>]*?href="([^"]+\.css)"[^>]*?>', caseSensitive: false);
+        final RegExp cssLinkRegexSingle = RegExp(r"<link[^>]*?href='([^']+\.css)'[^>]*?>", caseSensitive: false);
 
-        if (cssContent != null) {
-          final styleTag = '<style>$cssContent</style>';
-          htmlContent = htmlContent.replaceRange(match.start, match.end, styleTag);
-          developer.log('Replaced $originalLinkTag with <style> tag for $cssUri.', name: 'WebViewScreen');
-        } else {
-          _errorMessage = "Could not load CSS from $cssRelativePath (URI: $cssUri)";
-          developer.log('Embedding failed for $cssUri due to previous download error.', name: 'WebViewScreen');
-          // If a specific CSS failed, we can still try to load the rest.
-          // The _errorMessage will reflect the last failure.
+        List<RegExpMatch> allMatches = [];
+        allMatches.addAll(cssLinkRegexDouble.allMatches(htmlContent));
+        allMatches.addAll(cssLinkRegexSingle.allMatches(htmlContent));
+
+        // Sort matches by their start index in reverse order to avoid issues with string replacement indices
+        allMatches.sort((a, b) => b.start.compareTo(a.start));
+
+        for (final match in allMatches) {
+          final originalLinkTag = match.group(0)!;
+          final cssRelativePath = match.group(1)!;
+          
+          final cssUri = Uri.parse(directoryBaseUrl).resolve(cssRelativePath);
+
+          developer.log('Attempting to fetch and embed CSS from: $cssUri', name: 'WebViewScreen');
+          final cssResponse = await http.get(cssUri);
+
+          if (cssResponse.statusCode == 200) {
+            final cssContent = cssResponse.body;
+            final styleTag = '<style>$cssContent</style>';
+            htmlContent = htmlContent.replaceRange(match.start, match.end, styleTag);
+            developer.log('Embedded CSS for: $cssUri due to MIME type issue.', name: 'WebViewScreen');
+          } else {
+            developer.log('Failed to fetch CSS from $cssUri. Status code: ${cssResponse.statusCode}. Leaving link tag for WebView.', name: 'WebViewScreen');
+            _errorMessage = 'Failed to fetch CSS for styling: ${cssResponse.statusCode}';
+          }
         }
+        
+        // --- PERFORMANCE OPTIMIZATIONS ---
+
+        // 1. Add loading="lazy" to all images for better performance.
+        // This is a simple but effective replacement. It doesn't check for pre-existing 'loading' attributes
+        // but is generally safe for this use case.
+        htmlContent = htmlContent.replaceAll(
+          RegExp(r'<img', caseSensitive: false),
+          '<img loading="lazy"');
+        developer.log('Added loading="lazy" to image tags.', name: 'WebViewScreen');
+
+        // 2. Add defer to all external scripts for non-blocking loading.
+        // This targets script tags that are likely external by looking for a space after '<script'
+        // which implies attributes like 'src' will follow.
+        htmlContent = htmlContent.replaceAll(
+          RegExp(r'<script(?=\s)', caseSensitive: false), // Positive lookahead for a space
+          '<script defer');
+        developer.log('Added defer attribute to script tags.', name: 'WebViewScreen');
+
+        // --- END OF OPTIMIZATIONS ---
+
+        await _controller.loadHtmlString(htmlContent, baseUrl: directoryBaseUrl);
+        developer.log('Final HTML loaded into WebView with baseUrl: $directoryBaseUrl', name: 'WebViewScreen');
+      } else {
+        throw Exception('Failed to load file content from ${widget.fileUrl}. Status code: ${htmlResponse.statusCode}');
       }
-
-      // 6. Load the final HTML
-      await _controller.loadHtmlString(htmlContent);
-      developer.log('Final HTML loaded into WebView.', name: 'WebViewScreen');
-
     } catch (e) {
-      final detailedError = 'Error in _loadHtmlWithEmbeddedCss: ${e.toString()}';
+      final detailedError = 'Error in _loadHtmlWithBaseUrl: ${e.toString()}';
       developer.log(detailedError, name: 'WebViewScreen', error: e);
       setState(() {
-        _errorMessage = detailedError; // Display the error directly in the app
+        _errorMessage = detailedError;
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
