@@ -62,18 +62,16 @@ class _WebViewScreenState extends State<WebViewScreen> {
         developer.log('No external CSS links found or matched.', name: 'WebViewScreen');
       }
 
-      // Sort matches by their start index in reverse order to avoid issues with string replacement indices
-      allMatches.sort((a, b) => b.start.compareTo(a.start));
-
-      // Get the base URL to resolve relative paths
       final baseUrl = widget.fileUrl.substring(0, widget.fileUrl.lastIndexOf('/') + 1);
       developer.log('Base URL for resolving CSS: $baseUrl', name: 'WebViewScreen');
 
+      // Create a list of futures for parallel CSS downloads
+      List<Future<Map<String, String?>>> cssDownloadFutures = [];
+      List<Map<String, dynamic>> cssLinkDetails = []; // To store original tag, path, and match details
+
       for (final match in allMatches) {
         final originalLinkTag = match.group(0)!;
-        final cssRelativePath = match.group(1)!; // Capture group 1 is the path
-
-        developer.log('Processing CSS link: $originalLinkTag, relative path: $cssRelativePath', name: 'WebViewScreen');
+        final cssRelativePath = match.group(1)!;
 
         // Ensure it's a relative path (not http/https)
         if (cssRelativePath.startsWith('http://') || cssRelativePath.startsWith('https://') || cssRelativePath.startsWith('//')) {
@@ -81,27 +79,65 @@ class _WebViewScreenState extends State<WebViewScreen> {
           continue;
         }
 
-        // 3. Construct the full CSS URL using Uri.resolve for robustness
         final cssUri = Uri.parse(baseUrl).resolve(cssRelativePath);
-        developer.log('Constructed CSS URL: $cssUri', name: 'WebViewScreen');
+        developer.log('Scheduling CSS download for: $cssUri', name: 'WebViewScreen');
 
-        // 4. Download the CSS content
-        final cssResponse = await http.get(cssUri);
+        cssLinkDetails.add({
+          'match': match,
+          'originalLinkTag': originalLinkTag,
+          'cssRelativePath': cssRelativePath,
+          'cssUri': cssUri,
+        });
+
+        cssDownloadFutures.add(
+          http.get(cssUri).then((response) {
+            if (response.statusCode == 200) {
+              developer.log('CSS downloaded successfully from: $cssUri', name: 'WebViewScreen');
+              return {'cssContent': response.body, 'cssUri': cssUri.toString()};
+            } else {
+              developer.log('Failed to download CSS from $cssUri. Status code: ${response.statusCode}', name: 'WebViewScreen');
+              return {'cssContent': null, 'cssUri': cssUri.toString()};
+            }
+          }).catchError((e) {
+            developer.log('Error downloading CSS from $cssUri: $e', name: 'WebViewScreen');
+            return {'cssContent': null, 'cssUri': cssUri.toString()};
+          })
+        );
+      }
+
+      // Wait for all CSS downloads to complete
+      final List<Map<String, String?>> downloadedCssResults = await Future.wait(cssDownloadFutures);
+
+      // Sort matches by their start index in reverse order to avoid issues with string replacement indices
+      // This step is crucial for `replaceRange` to work correctly when multiple replacements occur.
+      cssLinkDetails.sort((a, b) => (b['match'] as RegExpMatch).start.compareTo((a['match'] as RegExpMatch).start));
+
+      // Process downloaded CSS and embed into HTML
+      for (int i = 0; i < cssLinkDetails.length; i++) {
+        final detail = cssLinkDetails[i];
+        final match = detail['match'] as RegExpMatch;
+        final originalLinkTag = detail['originalLinkTag'] as String;
+        final cssRelativePath = detail['cssRelativePath'] as String;
+        final cssUri = detail['cssUri'] as Uri;
         
-        if (cssResponse.statusCode == 200) {
-          developer.log('CSS downloaded successfully from: $cssUri', name: 'WebViewScreen');
-          // 5. Embed the CSS into a <style> tag
-          final cssContent = cssResponse.body;
+        // Find the corresponding downloaded content in the `downloadedCssResults`
+        // We need to match by cssUri because the order of cssLinkDetails might be different after sorting
+        final downloadedResult = downloadedCssResults.firstWhere(
+          (result) => result['cssUri'] == cssUri.toString(),
+          orElse: () => {'cssContent': null, 'cssUri': cssUri.toString()} // Fallback
+        );
+
+        final cssContent = downloadedResult['cssContent'];
+
+        if (cssContent != null) {
           final styleTag = '<style>$cssContent</style>';
-          
-          // Replace the original <link> tag with the <style> tag
           htmlContent = htmlContent.replaceRange(match.start, match.end, styleTag);
-          developer.log('Replaced $originalLinkTag with <style> tag.', name: 'WebViewScreen');
+          developer.log('Replaced $originalLinkTag with <style> tag for $cssUri.', name: 'WebViewScreen');
         } else {
-          final errorMsg = 'Failed to download CSS from $cssUri. Status code: ${cssResponse.statusCode}';
-          developer.log(errorMsg, name: 'WebViewScreen');
-          // Display a message in the app if CSS download fails
-          _errorMessage = "Could not load CSS from $cssRelativePath: Status ${cssResponse.statusCode}";
+          _errorMessage = "Could not load CSS from $cssRelativePath (URI: $cssUri)";
+          developer.log('Embedding failed for $cssUri due to previous download error.', name: 'WebViewScreen');
+          // If a specific CSS failed, we can still try to load the rest.
+          // The _errorMessage will reflect the last failure.
         }
       }
 
