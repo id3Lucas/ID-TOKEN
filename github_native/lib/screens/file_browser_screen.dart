@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// Removed developer import
 import '../services/github_service.dart';
 import '../models/repository.dart';
+import 'native_flip_card_screen.dart'; // Import the new native flip card screen
 
 class FileBrowserScreen extends StatefulWidget {
   final String owner;
@@ -27,7 +27,6 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
 
   void _fetchContents() {
     setState(() {
-      // developer.log('Fetching contents for ${widget.owner}/${widget.repoName} at path: $_currentPath', name: 'FileBrowserScreen'); // Log removed
       _contentsFuture = _githubService.getRepositoryContents(
         widget.owner,
         widget.repoName,
@@ -44,10 +43,16 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
       });
       _fetchContents();
     } else if (content.type == 'file' && content.name.endsWith('.html') && content.downloadUrl != null) {
-      Navigator.of(context).pushNamed(
-        '/webview',
-        arguments: {'fileUrl': content.downloadUrl!, 'fileName': content.name},
-      );
+      if (content.name == 'PresentationView.html') {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => NativeFlipCardScreen(fileName: content.name),
+        ));
+      } else {
+        Navigator.of(context).pushNamed(
+          '/webview',
+          arguments: {'fileUrl': content.downloadUrl!, 'fileName': content.name},
+        );
+      }
     } else if (content.type == 'file') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('This is not an HTML file.')),
@@ -80,17 +85,11 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              // developer.log('Error fetching contents: ${snapshot.error}', name: 'FileBrowserScreen'); // Log removed
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              // developer.log('No contents found for ${widget.owner}/${widget.repoName} at path: $_currentPath', name: 'FileBrowserScreen'); // Log removed
               return const Center(child: Text('No contents found in this directory.'));
             } else {
               final contents = snapshot.data!;
-              // developer.log('Contents received for ${widget.owner}/${widget.repoName} at path: $_currentPath:', name: 'FileBrowserScreen'); // Log removed
-              // for (var content in contents) { // Log removed
-              //   developer.log('- Name: ${content.name}, Type: ${content.type}, Path: ${content.path}', name: 'FileBrowserScreen'); // Log removed
-              // }
               return ListView.builder(
                 itemCount: contents.length,
                 itemBuilder: (context, index) {
