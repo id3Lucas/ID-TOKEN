@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'dart:developer' as developer; // Keep developer.log for internal tracking
+import 'dart:developer' as developer;
+import 'package:webview_flutter_android/webview_flutter_android.dart'; // Import Android specific WebView
+import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart'; // Required for PlatformWebViewControllerCreationParams
+// Removed import 'package:shimmer/shimmer.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String fileUrl;
@@ -22,8 +25,29 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted);
+
+    // Create Platform Specific Params
+    late final PlatformWebViewControllerCreationParams params;
+    if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+      params = AndroidWebViewControllerCreationParams();
+    } else {
+      params = const PlatformWebViewControllerCreationParams();
+    }
+
+    _controller = WebViewController.fromPlatformCreationParams(params);
+
+    _controller
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.transparent) // Set transparent background
+      ..enableZoom(false); // Disable browser zoom
+
+    // ANDROID SPECIFIC OPTIMIZATIONS
+    if (_controller.platform is AndroidWebViewController) {
+      // Force Hardware Acceleration for the view
+      AndroidWebViewController.enableDebugging(false); // Turn off debug overhead
+      (_controller.platform as AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
+    }
     
     _loadHtmlWithBaseUrl();
   }
@@ -72,16 +96,12 @@ class _WebViewScreenState extends State<WebViewScreen> {
         // --- PERFORMANCE OPTIMIZATIONS ---
 
         // 1. Add loading="lazy" to all images for better performance.
-        // This is a simple but effective replacement. It doesn't check for pre-existing 'loading' attributes
-        // but is generally safe for this use case.
         htmlContent = htmlContent.replaceAll(
           RegExp(r'<img', caseSensitive: false),
           '<img loading="lazy"');
         developer.log('Added loading="lazy" to image tags.', name: 'WebViewScreen');
 
         // 2. Add defer to all external scripts for non-blocking loading.
-        // This targets script tags that are likely external by looking for a space after '<script'
-        // which implies attributes like 'src' will follow.
         htmlContent = htmlContent.replaceAll(
           RegExp(r'<script(?=\s)', caseSensitive: false), // Positive lookahead for a space
           '<script defer');
@@ -109,6 +129,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     }
   }
 
+  // Removed _buildShimmerContent() helper widget
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,7 +140,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       body: Builder(
         builder: (context) {
           if (_isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator()); // Reverted to CircularProgressIndicator
           }
           if (_errorMessage != null) {
             return Center(child: Padding(

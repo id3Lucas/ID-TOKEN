@@ -37,18 +37,33 @@ The primary goal of this session was to improve the rendering of HTML files with
         b. **Deferring JavaScript:** Automatically added the `defer` attribute to `<script>` tags to make their loading non-blocking.
 
 6.  **Update Project Dependencies (Completed):**
-    - Executed `flutter pub upgrade`.
+    - Executed `flutter pub upgrade --major-versions`.
     - `shared_preferences` and `webview_flutter_wkwebview` were updated.
-    - Noted that 6 packages had incompatible constraints, requiring manual intervention for full upgrade.
+    - Noted that 4 packages still had incompatible constraints.
+    - `webview_flutter` updated to `4.13.0`.
+    - `webview_flutter_android` updated to `4.10.11`.
 
 7.  **Implement Caching for API Requests (Completed):**
     - The `shared_preferences` package was verified/added.
     - Caching logic was integrated into `github_viewer_v2/lib/services/github_service.dart`.
     - Both `getRepositories()` and `getRepositoryContents()` methods now check local cache first, then fetch from the network if data is not present or stale, and finally store network responses in `shared_preferences`.
 
-8.  **Initiate Shimmer Effect for Loading (In Progress):**
+8.  **Implement Shimmer Effect for Loading (Completed):**
     - The `shimmer` package was added to the project dependencies.
-    - Next steps involve modifying UI screens (e.g., `RepoListScreen`) to replace standard loading indicators with shimmering placeholders.
+    - **For `RepoListScreen`:** Implemented a shimmer effect to replace the `CircularProgressIndicator` when loading repositories, mimicking the `ListTile` layout.
+    - **For `WebViewScreen`:** An initial attempt was made to add a generic shimmer effect. However, due to the unpredictable and dynamic nature of arbitrary HTML content, the generic shimmer did not provide a good user experience. This effect was subsequently reverted, and the `CircularProgressIndicator` was restored for `WebViewScreen` to maintain clarity during HTML loading.
+
+9.  **AI Studio Suggestion: Force Hardware Acceleration (Android) (Completed):**
+    - Added `android:hardwareAccelerated="true"` to the `<application>` tag in `android/app/src/main/AndroidManifest.xml`. This explicitly enables hardware acceleration for the Android app, benefiting WebView rendering.
+
+10. **AI Studio Suggestion: WebView Controller Configuration (Completed with Adjustments):**
+    - Modified `github_viewer_v2/lib/screens/webview_screen.dart` to use platform-specific `WebViewController` creation parameters.
+    - Applied general optimizations: `setBackgroundColor(Colors.transparent)` and `enableZoom(false)`.
+    - Applied Android-specific optimizations: `AndroidWebViewController.enableDebugging(false)` and `setMediaPlaybackRequiresUserGesture(false)`.
+    - **Note on `forceEnableSurfaceControl`:** The suggested parameter `forceEnableSurfaceControl: true` for `AndroidWebViewControllerCreationParams` was found not to exist in `webview_flutter_android` version `4.10.11` (or the 4.x.x series) after investigation. It was therefore removed to allow the application to compile. SurfaceControl optimizations are handled implicitly by the plugin in modern Flutter versions with hybrid composition.
+
+11. **AI Studio Suggestion: iOS Specific - 120Hz (ProMotion) Issue (Completed):**
+    - Added `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` to `ios/Runner/Info.plist`. This aims to unlock the full frame rate (120Hz) for `WKWebView`s on compatible iOS devices, providing a smoother experience.
 
 ## Important Environment Notes
 

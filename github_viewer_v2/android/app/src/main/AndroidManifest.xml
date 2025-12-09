@@ -3,7 +3,8 @@
     <application
         android:label="github_viewer_v2"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:hardwareAccelerated="true"> <!-- ADDED BY GEMINI -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
