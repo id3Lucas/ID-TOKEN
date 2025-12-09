@@ -43,10 +43,11 @@ The primary goal of this session was to improve the rendering of HTML files with
     - `webview_flutter` updated to `4.13.0`.
     - `webview_flutter_android` updated to `4.10.11`.
 
-7.  **Implement Caching for API Requests (Completed):**
+7.  **Implement Caching for API Requests (Completed with Adjustment):**
     - The `shared_preferences` package was verified/added.
     - Caching logic was integrated into `github_viewer_v2/lib/services/github_service.dart`.
-    - Both `getRepositories()` and `getRepositoryContents()` methods now check local cache first, then fetch from the network if data is not present or stale, and finally store network responses in `shared_preferences`.
+    - Both `getRepositories()` and `getRepositoryContents()` methods now check local cache first, then fetch from the network.
+    - **Adjustment:** Caching for `getRepositoryContents()` was temporarily disabled and then completely removed during debugging, as it was returning stale data and preventing the display of newly pushed GitHub repository contents (like `Vue id token version 2`). The plan is to re-enable it after current debugging is complete.
 
 8.  **Implement Shimmer Effect for Loading (Completed):**
     - The `shimmer` package was added to the project dependencies.
