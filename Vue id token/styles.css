@@ -134,7 +134,7 @@ html {
   position: absolute;
   inset: -50%;
   opacity: 0;
-  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+  /* transition: transform 0.15s ease-out, opacity 0.15s ease-out; */ /* Removed by Gemini */
 }
 
 .pattern-hex {

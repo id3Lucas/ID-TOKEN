@@ -275,20 +275,13 @@ function updateAnimation() {
     glareElement.style.opacity = opacityVal;
   }
   
-  // Update Shadow
-  if (card) {
-      // REDUCED MOVEMENT: Changed -20 to -10
-      const shadowX = (currentDx * -10).toFixed(2);
-      const shadowY = (currentDy * -10).toFixed(2);
-      
-      // REDUCED BLUR & OFFSET: 
-      // Base Y: 10px (was 15)
-      // Blur: 20px (was 35)
-      // Opacity: 0.5 (was 0.6)
-      const currentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-      
-      card.style.boxShadow = `${shadowX}px ${10 + parseFloat(shadowY)}px 5px rgba(0, 0, 0, 0.5), 0 0 4px ${currentColor}`;
-  }
+  // Update Shadow (Animation removed for performance)
+  // if (card) {
+  //     const shadowX = (currentDx * -10).toFixed(2);
+  //     const shadowY = (currentDy * -10).toFixed(2);
+  //     const currentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  //     card.style.boxShadow = `${shadowX}px ${10 + parseFloat(shadowY)}px 5px rgba(0, 0, 0, 0.5), 0 0 4px ${currentColor}`;
+  // }
   
   requestAnimationFrame(updateAnimation);
 }
