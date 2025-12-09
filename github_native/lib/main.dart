@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:github_viewer_v2/screens/file_browser_screen.dart';
-import 'package:github_viewer_v2/screens/login_screen.dart';
-import 'package:github_viewer_v2/screens/repo_list_screen.dart';
-import 'package:github_viewer_v2/screens/webview_screen.dart';
-import 'package:github_viewer_v2/services/auth_service.dart';
+import 'package:github_native/screens/file_browser_screen.dart';
+import 'package:github_native/screens/login_screen.dart';
+import 'package:github_native/screens/repo_list_screen.dart';
+import 'package:github_native/screens/webview_screen.dart';
+import 'package:github_native/services/auth_service.dart';
 
 void main() {
   runApp(const MyApp());

@@ -90,8 +90,8 @@ To achieve even greater fluidity and native performance for critical UI componen
 
 **Purpose:** This fork will serve as a testbed to implement the "flip card" (and other complex animations) directly using Flutter widgets, leveraging native rendering capabilities for optimal performance.
 
-**Renaming and Configuration:**
-The `github_native` project was renamed from `github_viewer_v2` by updating:
+**Renaming and Configuration (Ongoing Troubleshooting):**
+The `github_native` project was intended to be renamed from `github_viewer_v2`. Initial steps included updating:
 - `pubspec.yaml` (`name` and `description`)
 - `android/app/build.gradle.kts` (`namespace` and `applicationId`)
 - `android/app/src/main/AndroidManifest.xml` (`android:label`)
@@ -104,6 +104,8 @@ The `github_native` project was renamed from `github_viewer_v2` by updating:
 - `macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme` (`BuildableName` references)
 - `macos/Runner.xcodeproj/project.pbxproj` (product references, test host paths, and bundle identifiers)
 - `macos/Runner/Configs/AppInfo.xcconfig` (`PRODUCT_NAME` and `PRODUCT_BUNDLE_IDENTIFIER`)
+
+Despite these changes, the `flutter run` command still attempts to launch the app with the old `com.example.github_viewer_v2` package ID, leading to a `ClassNotFoundException`. This indicates a persistent caching issue within the Flutter/Gradle build system or remaining references to the old name in less obvious places. Aggressive manual cleanup of build artifacts and a comprehensive re-application of renaming steps are underway to resolve this.
 
 ## Important Environment Notes
 
