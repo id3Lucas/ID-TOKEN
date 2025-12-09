@@ -46,8 +46,8 @@ The primary goal of this session was to improve the rendering of HTML files with
 7.  **Implement Caching for API Requests (Completed with Adjustment):**
     - The `shared_preferences` package was verified/added.
     - Caching logic was integrated into `github_viewer_v2/lib/services/github_service.dart`.
-    - Both `getRepositories()` and `getRepositoryContents()` methods now check local cache first, then fetch from the network.
-    - **Adjustment:** Caching for `getRepositoryContents()` was temporarily disabled and then completely removed during debugging, as it was returning stale data and preventing the display of newly pushed GitHub repository contents (like `Vue id token version 2`). The plan is to re-enable it after current debugging is complete.
+    - `getRepositories()` method uses caching.
+    - **Adjustment:** Caching for `getRepositoryContents()` was temporarily disabled during debugging due to stale data issues, and remains disabled as per user request (to be revisited later).
 
 8.  **Implement Shimmer Effect for Loading (Completed):**
     - The `shimmer` package was added to the project dependencies.
@@ -69,12 +69,20 @@ The primary goal of this session was to improve the rendering of HTML files with
 12. **AI Studio Suggestion: Are you in Debug Mode? (Tested in Release Mode):**
     - Confirmed with the user the importance of testing in Release mode for accurate performance assessment. User reported testing in Release mode for the HTML content.
 
-13. **Investigation: Flip Card Smoothness (Initial Optimizations Implemented):**
+13. **Investigation: Flip Card Smoothness (Optimizations and Simplified Hologram Tested):**
     - Identified the "flip card" implementation in `PresentationView.html` and `styles.css`.
-    - Implemented optimizations:
-        a. Removed conflicting CSS `transition` property from `.holo-layer` in `styles.css`.
-        b. Removed expensive dynamic `box-shadow` animation from JavaScript in `PresentationView.html`.
-    - **User Feedback:** User reported that the improvement was "not very great." Further investigation into flip card fluidity is needed.
+    - Implemented optimizations in `Vue id token/PresentationView.html` and `Vue id token/styles.css`:
+        a. Removed conflicting CSS `transition` property from `.holo-layer`.
+        b. Removed expensive dynamic `box-shadow` animation from JavaScript.
+    - **Debugging Directory Visibility:**
+        - User reported `Vue id token version 2` was not visible in the app.
+        - Investigated through `developer.log` statements in `FileBrowserScreen` and `RepoListScreen`.
+        - Found that the GitHub API *does* return `Vue id token version 2` at the root of the `ID-TOKEN` repository.
+        - Problem was identified as stale cache in `GitHubService` (for `getRepositoryContents`).
+        - **Resolution:** Temporarily disabling caching in `getRepositoryContents` revealed the directory.
+    - **Simplified Hologram Test (in `Vue id token version 2`):**
+        - Created a copy of `Vue id token` named `Vue id token version 2` with a significantly simplified hologram effect (reduced layers, removed expensive blend modes).
+        - User confirmed that the simplified hologram `PresentationView.html` **functions correctly** and the "flip card" fluidity is now acceptable with this version.
 
 ## Important Environment Notes
 
