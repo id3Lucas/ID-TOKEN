@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; // Import shimmer package
+import 'package:shimmer/shimmer.dart';
+import 'dart:developer' as developer; // Add developer import
 import '../services/github_service.dart';
 import '../services/auth_service.dart';
 import '../models/repository.dart';
@@ -19,10 +20,12 @@ class _RepoListScreenState extends State<RepoListScreen> {
   @override
   void initState() {
     super.initState();
+    developer.log('RepoListScreen: Fetching repositories...', name: 'RepoListScreen');
     _repositoriesFuture = _githubService.getRepositories();
   }
 
   void _signOut() async {
+    developer.log('RepoListScreen: Signing out...', name: 'RepoListScreen');
     await _authService.signOut();
     Navigator.of(context).pushReplacementNamed('/login');
   }
@@ -79,9 +82,10 @@ class _RepoListScreenState extends State<RepoListScreen> {
         future: _repositoriesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            // Replace CircularProgressIndicator with shimmer effect
+            developer.log('RepoListScreen: ConnectionState.waiting', name: 'RepoListScreen');
             return _buildShimmerList();
           } else if (snapshot.hasError) {
+            developer.log('RepoListScreen: Error: ${snapshot.error}', name: 'RepoListScreen');
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -89,9 +93,15 @@ class _RepoListScreenState extends State<RepoListScreen> {
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            developer.log('RepoListScreen: No repositories found.', name: 'RepoListScreen');
             return const Center(child: Text('No repositories found.'));
           } else {
             final repos = snapshot.data!;
+            developer.log('RepoListScreen: Repositories loaded (${repos.length} found).', name: 'RepoListScreen');
+            // Log names of loaded repositories
+            for (var repo in repos) {
+              developer.log('RepoListScreen: - ${repo.name} (owner: ${repo.owner})', name: 'RepoListScreen');
+            }
             return ListView.builder(
               itemCount: repos.length,
               itemBuilder: (context, index) {
@@ -100,6 +110,7 @@ class _RepoListScreenState extends State<RepoListScreen> {
                   title: Text(repo.name),
                   subtitle: Text(repo.owner),
                   onTap: () {
+                    developer.log('RepoListScreen: Tapped on repository: ${repo.name}', name: 'RepoListScreen');
                     Navigator.of(context).pushNamed(
                       '/file_browser',
                       arguments: {'owner': repo.owner, 'repoName': repo.name},
