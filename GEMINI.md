@@ -84,6 +84,27 @@ The primary goal of this session was to improve the rendering of HTML files with
         - Created a copy of `Vue id token` named `Vue id token version 2` with a significantly simplified hologram effect (reduced layers, removed expensive blend modes).
         - User confirmed that the simplified hologram `PresentationView.html` **functions correctly** and the "flip card" fluidity is now acceptable with this version.
 
+## **Fork Creation: github_native**
+
+To achieve even greater fluidity and native performance for critical UI components like the "flip card", a new Flutter project named `github_native` was forked from `github_viewer_v2`.
+
+**Purpose:** This fork will serve as a testbed to implement the "flip card" (and other complex animations) directly using Flutter widgets, leveraging native rendering capabilities for optimal performance.
+
+**Renaming and Configuration:**
+The `github_native` project was renamed from `github_viewer_v2` by updating:
+- `pubspec.yaml` (`name` and `description`)
+- `android/app/build.gradle.kts` (`namespace` and `applicationId`)
+- `android/app/src/main/AndroidManifest.xml` (`android:label`)
+- `android/app/src/main/kotlin/com/example/github_native/MainActivity.kt` (file path and package declaration)
+- `web/manifest.json` (`name` and `short_name`)
+- `web/index.html` (`apple-mobile-web-app-title` and `<title>`)
+- `README.md` (title, description, and setup path)
+- `linux/CMakeLists.txt` (`BINARY_NAME` and `APPLICATION_ID`)
+- `linux/runner/my_application.cc` (window titles)
+- `macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme` (`BuildableName` references)
+- `macos/Runner.xcodeproj/project.pbxproj` (product references, test host paths, and bundle identifiers)
+- `macos/Runner/Configs/AppInfo.xcconfig` (`PRODUCT_NAME` and `PRODUCT_BUNDLE_IDENTIFIER`)
+
 ## Important Environment Notes
 
 - The Flutter SDK is not in the system's `PATH`.

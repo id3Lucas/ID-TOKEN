@@ -1,8 +1,6 @@
-# GitHub HTML Viewer (v2 - PAT Edition)
+# GitHub Native Viewer (Fork - PAT Edition)
 
-This is a Flutter application for Android that allows you to browse your GitHub repositories and view HTML files using a **Personal Access Token (PAT)**.
-
-This version is simpler and more reliable than the previous OAuth2-based version.
+This is a Flutter application that aims to demonstrate a native Flutter implementation of GitHub viewer features, specifically for replacing WebView-based animations with native Flutter widgets for improved performance and fluidity.
 
 ## Setup Instructions
 
@@ -21,7 +19,7 @@ This version is simpler and more reliable than the previous OAuth2-based version
 1.  Ensure you have an Android device connected or an emulator running.
 2.  Open your terminal and navigate to the project directory:
     ```bash
-    cd C:\Users\llhuillier\Desktop\Github\ID-TOKEN\github_viewer_v2
+    cd C:\Users\llhuillier\Desktop\Github\ID-TOKEN\github_native
     ```
 3.  Run the application:
     ```bash
