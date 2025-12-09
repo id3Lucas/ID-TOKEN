@@ -48,21 +48,20 @@ class GitHubService {
     }
   }
 
-  Future<List<RepositoryContent>> getRepositoryContents(String owner, String repoName, {String path = ''}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final cacheKey = 'contents_cache_${owner}_${repoName}_$path';
-
-    // Try to fetch from cache first
-    final cachedData = prefs.getString(cacheKey);
-    if (cachedData != null) {
-      developer.log('Returning cached contents for path: $path', name: 'GitHubService');
-      Iterable l = json.decode(cachedData);
-      return List<RepositoryContent>.from(l.map((model) => RepositoryContent.fromJson(model)));
-    }
-
-    developer.log('Fetching contents from network for path: $path', name: 'GitHubService');
-    final token = await _authService.getToken();
-    if (token == null) {
+        Future<List<RepositoryContent>> getRepositoryContents(String owner, String repoName, {String path = ''}) async {
+          // final prefs = await SharedPreferences.getInstance(); // Temporarily commented out for debug
+          final cacheKey = 'contents_cache_${owner}_${repoName}_$path';
+  
+          // Try to fetch from cache first // Temporarily commented out for debug
+          // final cachedData = prefs.getString(cacheKey);
+          // if (cachedData != null) {
+          //   developer.log('Returning cached contents for path: $path', name: 'GitHubService');
+          //   Iterable l = json.decode(cachedData);
+          //   return List<RepositoryContent>.from(l.map((model) => RepositoryContent.fromJson(model)));
+          // }
+  
+          developer.log('Fetching contents from network for path: $path (Cache temporarily disabled)', name: 'GitHubService');
+          final token = await _authService.getToken();    if (token == null) {
       throw Exception('Not authenticated. Please provide a Personal Access Token.');
     }
 
