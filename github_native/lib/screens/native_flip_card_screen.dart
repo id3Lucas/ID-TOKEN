@@ -302,8 +302,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   // Actual content widgets
-  Widget _buildFrontContent({double? contentHeight}) {
-    return Expanded( // Use Expanded to fill available space in Column
+  Widget _buildFrontContent() {
+    return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -316,11 +316,10 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Placeholder for logo - using an icon for now
-                  Icon(Icons.shield, color: _primaryColor, size: 30),
-                  const SizedBox(width: 10), // gap: 10px
+                  Icon(Icons.vpn_key_rounded, color: _primaryColor, size: 30), // Example icon for logo
+                  const SizedBox(width: 8), // gap: 10px
                   Text(
-                    'COMPANY',
+                    'ID Token', // Extracted from HTML
                     style: TextStyle(
                       color: _primaryColor,
                       fontSize: 18,
@@ -339,24 +338,25 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Chip
               SizedBox(
-                width: 50, // width based on CSS example
-                height: 50, // height based on CSS example
+                width: 40, // width based on CSS example
+                height: 40, // height based on CSS example
                 child: SvgPicture.asset(
                   'assets/chip.svg',
-                  colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn), // Color the SVG
+                  colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn), // Color the SVG path with primary color
                 ),
               ),
             ],
           ),
           // Photo area
           Container(
-            width: 150, height: 150,
-            margin: const EdgeInsets.only(bottom: 10), // margin: auto auto 10px auto
+            width: 150,
+            height: 150,
+            margin: const EdgeInsets.only(bottom: 8), // margin: auto auto 10px auto
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: _primaryColor, width: 4), // padding 4px + 2px border
+              border: Border.all(color: _primaryColor, width: 4), // padding 4px + 2px border (simulated)
               image: const DecorationImage(
-                image: AssetImage('assets/profile_photo.jpg'),
+                image: AssetImage('assets/photo.jpg'), // User-provided image name
                 fit: BoxFit.cover,
               ),
               boxShadow: [
@@ -369,59 +369,113 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
             ),
           ),
           // Name
-          Container(
-            height: 2.5 * 22, // Approx 2.5em, assuming base font size of 22 for clamp max
-            child: Text(
-              'JOHN DOE',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _textColor,
-                fontSize: 22, // clamp(10px, 5vmin, 22px)
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.0,
+          Flexible( // Make Flexible
+            child: Container(
+              constraints: BoxConstraints(maxHeight: 2.5 * 22), // Approx 2.5em, assuming base font size of 22 for clamp max
+              child: Text(
+                'Sarah Connor', // Extracted from HTML
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _textColor,
+                  fontSize: 22, // clamp(10px, 5vmin, 22px)
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           // Rank
           Text(
-            'AGENT',
+            'ID Document data', // Extracted from HTML
             style: TextStyle(
               color: _accentColor,
               fontSize: 16, // clamp(10px, 2.5vmin, 16px)
               fontWeight: FontWeight.w600,
-              textBaseline: TextBaseline.alphabetic, // Ensures proper baseline for uppercase
               letterSpacing: 1.0,
             ),
           ),
-          const SizedBox(height: 20), // Placeholder to simulate spacing
+          const SizedBox(height: 10), // Reduced from 20
           // Data Grid
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(8),
-              border: Border(left: BorderSide(color: _accentColor, width: 3)),
+          Flexible( // Make Flexible
+            child: Container(
+              padding: const EdgeInsets.all(8), // Reduced from 10
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(8),
+                border: Border(left: BorderSide(color: _accentColor, width: 3)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('TYPE', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('P', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('ISSUER', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('USA', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('NATIONALITY', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('American', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('GENDER', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('F', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('BIRTH DATE', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('12/2029', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('PLACE', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('Chicago', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('ISSUED', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('2022-12-31', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('EXPIRES', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
+                      Text('2030-12-22', style: TextStyle(color: _accentColor, fontSize: 14, fontWeight: FontWeight.w600)), // data-val #expiry-date
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('ID:', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                    Text('12345', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                  ],
-                ),
-                const SizedBox(height: 5), // gap 10px in CSS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Expiry:', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                    Text('12/25', style: TextStyle(color: _accentColor, fontSize: 14, fontWeight: FontWeight.w600)), // data-val #expiry-date
-                  ],
-                ),
-              ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '>> 8473 9283 1102 <<', // Extracted from HTML
+            style: TextStyle(
+              color: _accentColor,
+              fontSize: 18,
+              fontFamily: 'monospace', // Fallback for 'Courier New'
+              letterSpacing: 2.0,
             ),
           ),
         ],
@@ -439,19 +493,38 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
             width: 150, height: 150,
             padding: const EdgeInsets.all(5), // padding 5px in CSS
             color: Colors.white, // background #fff
-            child: Image.asset('assets/qr_code.png', fit: BoxFit.contain),
+            child: Image.asset('assets/qr.png', fit: BoxFit.contain), // User-provided image name
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10), // Reduced from 20
           // Disclaimer Text
-          Text(
-            'This card is the property of the issuing authority. Unauthorized use is prohibited.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Column(
+              children: [
+                Text(
+                  'BIOSEAL CODE', // Extracted from HTML
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'BioSeal Code provides secure multi-factor authentication for verifying identities and authenticating documents through its innovative integration of Visible Digital Seal\'s technology (VDS).', // Extracted from HTML
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 12),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'It complies with ISO 22385 & 22376 standards.', // Extracted from HTML
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 12),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10), // Reduced from 20
           // Bottom Text
           Text(
-            'Bioseal Industries',
+            'ID3 TECHNOLOGIES', // Extracted from HTML
             style: TextStyle(color: _primaryColor, fontSize: 14),
           ),
         ],
