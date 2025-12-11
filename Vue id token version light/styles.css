@@ -233,45 +233,7 @@ body {
 }
 
 
-.chip {
-  pointer-events: auto;
-}
 
-.chip svg {
-  cursor: pointer;
-  transform-origin: center;
-  animation: wave-chip 2.5s infinite ease-in-out;
-  -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-}
-
-@keyframes wave-chip {
-
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-
-  10% {
-    transform: rotate(15deg) scale(1.1);
-  }
-
-  20% {
-    transform: rotate(-10deg) scale(1.1);
-  }
-
-  30% {
-    transform: rotate(5deg) scale(1.1);
-  }
-
-  40% {
-    transform: rotate(-5deg) scale(1.1);
-  }
-
-  50% {
-    transform: rotate(0deg) scale(1);
-  }
-}
 
 /* --- MEDIA QUERY: IPHONE SE (Portrait) --- */
 @media (max-width: 400px) and (orientation: portrait) {
@@ -350,12 +312,7 @@ body {
     width: 100%;
   }
 
-  .chip {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-  }
+
 
   /* --- LEFT COLUMN (Centered by spacers) --- */
   .photo-area {
