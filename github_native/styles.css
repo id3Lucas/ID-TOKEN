@@ -21,7 +21,7 @@ html {
   align-items: center;
   perspective: 2500px;
 }
-body{flex-direction:column}
+
 /* --- VARIABLES --- */
 :root {
   --card-h: min(136vw, 80vh);
@@ -43,8 +43,8 @@ body{flex-direction:column}
   }
 
   .photo-area {
-    width: 8rem;
-    height: 8rem;
+    width: 130px;
+    height: 130px;
   }
 }
 
@@ -71,7 +71,6 @@ body{flex-direction:column}
   cursor: pointer;
   border-radius: var(--radius);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 242, 255, 0.1);
-  margin: 2vh 2vw;
 }
 
 /* --- FACES --- */
@@ -128,7 +127,7 @@ body{flex-direction:column}
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
-  /* mix-blend-mode: color-dodge; */ /* Removed by Gemini for performance */
+  mix-blend-mode: color-dodge;
 }
 
 .holo-layer {
@@ -138,11 +137,27 @@ body{flex-direction:column}
   /* transition: transform 0.15s ease-out, opacity 0.15s ease-out; */ /* Removed by Gemini */
 }
 
-/* Removed pattern-hex, pattern-text, pattern-wave rules by Gemini for hologram simplification */
+.pattern-hex {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='70' viewBox='0 0 40 70' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(0, 242, 255, 0.5)' stroke-width='1'%3E%3Cpath d='M20 5 L35 15 L35 35 L20 45 L5 35 L5 15 Z' /%3E%3C/g%3E%3C/svg%3E");
+  background-size: 40px 70px;
+  mix-blend-mode: overlay;
+}
+
+.pattern-text {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50' y='50' font-family='Arial' font-weight='bold' font-size='12' fill='rgba(255,255,255,0.3)' text-anchor='middle' transform='rotate(-45 50 50)'%3EID TOKEN%3C/text%3E%3C/svg%3E");
+  background-size: 80px 80px;
+  mix-blend-mode: soft-light;
+}
+
+.pattern-wave {
+  background-image: repeating-radial-gradient(circle at 50% 50%, transparent 0, rgba(255, 255, 255, 0.1) 1px, transparent 4px);
+  background-size: 60px 60px;
+  mix-blend-mode: screen;
+}
 
 .holo-gradient {
   background: linear-gradient(115deg, transparent 30%, rgba(0, 242, 255, 0.1) 45%, rgba(255, 255, 255, 0.3) 50%, rgba(0, 242, 255, 0.1) 55%, transparent 70%);
-  /* mix-blend-mode: screen; */ /* Removed by Gemini for performance */
+  mix-blend-mode: screen;
   background-size: 200% 200%;
 }
 
@@ -168,7 +183,7 @@ body{flex-direction:column}
 
 .company-name {
   font-weight: 700;
-  font-size: clamp(1em, 3.5vmin, 22px);
+  font-size: clamp(14px, 3.5vmin, 22px);
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--primary);
@@ -178,7 +193,7 @@ body{flex-direction:column}
 /* BOTTOM ID: Pinned to bottom */
 .bottom-id {
   font-family: 'Courier New', monospace;
-  font-size: clamp(1em, 3vmin, 18px);
+  font-size: clamp(12px, 3vmin, 18px);
   text-align: center;
   /* Pushes itself to the bottom in a flex column */
   margin-top: auto;
@@ -196,6 +211,8 @@ body{flex-direction:column}
 /* We auto-margin these to float them in the center vertically */
 .photo-area {
   position: relative;
+  width: 150px;
+  height: 150px;
   /* Auto margins push it to center vertically between Top and Details */
   margin: auto auto 10px auto;
   border-radius: 50%;
@@ -227,7 +244,7 @@ body{flex-direction:column}
 }
 
 .name {
-  font-size: clamp(1em, 5vmin, 15px);
+  font-size: clamp(10px, 5vmin, 15px);
   font-weight: 700;
   margin: 0;
   text-transform: uppercase;
@@ -254,7 +271,7 @@ body{flex-direction:column}
 
 .rank {
   color: var(--accent);
-  font-size: clamp(0.9em, 2.5vmin, 16px);
+  font-size: clamp(10px, 2.5vmin, 16px);
   font-weight: 600;
   text-transform: uppercase;
   margin: 10px 0;
@@ -267,7 +284,7 @@ body{flex-direction:column}
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   text-align: left;
-  font-size: clamp(0.8em, 2.2vmin, 14px);
+  font-size: clamp(10px, 2.2vmin, 14px);
   background: rgba(255, 255, 255, 0.03);
   padding: 10px;
   border-radius: 8px;
@@ -279,7 +296,7 @@ body{flex-direction:column}
 
 .data-label {
   color: #6f809b;
-
+  font-size: 0.9em;
   display: block;
 }
 
@@ -316,13 +333,13 @@ body{flex-direction:column}
 }
 
 .disclaimer {
-  font-size: clamp(0.8em, 2vmin, 15px);
+  font-size: clamp(12px, 2vmin, 15px);
   color: white;
   line-height: 1.4;
 }
 
 .entreprise-name {
-  font-size: clamp(1em, 2vmin, 15px);
+  font-size: clamp(10px, 2vmin, 15px);
   color: var(--primary);
   margin-top: auto;
   opacity: 1;
@@ -391,6 +408,8 @@ body{flex-direction:column}
 
   /* Tighter spacing for small screens */
   .photo-area {
+    width: 100px;
+    height: 100px;
     margin: auto auto 5px auto;
   }
 
@@ -467,6 +486,8 @@ body{flex-direction:column}
   /* --- LEFT COLUMN (Centered by spacers) --- */
   .photo-area {
     grid-area: photo;
+    width: 100px;
+    height: 100px;
     align-self: end;
     /* Push down towards name */
     justify-self: center;
@@ -510,17 +531,20 @@ body{flex-direction:column}
   }
 
   /* --- ADJUSTMENTS --- */
-
+  .name {
+    font-size: clamp(10px, 5vmin, 10px);
+  }
 
   .rank {
     margin: 5px 0;
+    font-size: clamp(10px, 5vmin, 10px);
   }
 
   .data-grid {
     padding: 8px;
     gap: 2px 5px;
     line-height: 1.1;
-
+    font-size: 0.7em;
   }
 
 
@@ -554,7 +578,7 @@ body{flex-direction:column}
     text-align: left;
     padding-left: 10px;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: clamp(0.8em, 2vmin, 12px);
+    font-size: clamp(9px, 2vmin, 12px);
   }
 
   .id-card-back>div:last-child {
@@ -679,19 +703,13 @@ body{flex-direction:column}
 .btn-deny:active {
   background: rgba(255, 255, 255, 0.1);
 }
-.button-div {
-  width:100vw;display: flex;
-  justify-content: end;
-  position: absolute;
-  bottom: 2vh;
-  }
+
 .glass-btn-icon {
-  position: relative;
-  margin: 2vh;
-  max-width: 2rem;
-  aspect-ratio: 1/1;
+  position: fixed;
+  right: 30px;
+  top: max(30px, env(safe-area-inset-top) + 20px);
   width: 50px;
-  height: auto;
+  height: 50px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);

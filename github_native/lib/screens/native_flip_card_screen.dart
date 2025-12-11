@@ -37,11 +37,12 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   double _targetHoloOpacity = 0.0;
 
   final double _gyroFilterFactor = 0.1;
-  final double _movementSensitivity = 1.0; // Adjusted from 5.0 to 1.0 to match JS
-  final double _speedThreshold = 0.05; // Lowered from 0.15
+  final double _movementSensitivity = 5.0; // Reverted to original JS value
+  final double _speedThreshold = 0.15; // Reverted to original JS value
   final double _holoIntensity = 0.5;
 
   late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
+  late StreamSubscription<AccelerometerEvent> _accelerometerSubscription; // For orientation data (beta/gamma)
 
   @override
   void initState() {
@@ -65,29 +66,79 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     developer.log('Setting up motion detection...', name: 'NativeFlipCardScreen');
     // Subscribe to gyroscope events
     _gyroscopeSubscription = gyroscopeEventStream(samplingPeriod: const Duration(microseconds: 60000)).listen((GyroscopeEvent event) {
-      developer.log('Gyroscope event received.', name: 'NativeFlipCardScreen');
-      _handleGyroscope(event);
+      // For gyroscope events, we only care about the event itself to trigger the animation
+      // The actual values for currentDx/Dy are derived from Accelerometer events
+    });
+
+    // Subscribe to accelerometer events for device orientation (beta/gamma equivalent)
+    _accelerometerSubscription = accelerometerEventStream(samplingPeriod: const Duration(microseconds: 60000)).listen((AccelerometerEvent event) {
+      _handleAccelerometer(event);
     });
   }
 
-  void _handleGyroscope(GyroscopeEvent event) {
-    developer.log('Gyro: x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
+  void _handleAccelerometer(AccelerometerEvent event) {
+    // Simulate DeviceOrientationEvent.beta and gamma using accelerometer data
+    // This is a simplification. Actual DeviceOrientationEvent uses different sensors.
+    // However, for tilt-based parallax, accelerometer is a good approximation.
 
-    // Convert gyro data to movement in X/Y plane for hologram effect
-    // event.y for rotation around X (pitch) affects Dy (vertical movement of holo)
-    // event.x for rotation around Y (roll) affects Dx (horizontal movement of holo)
+    // Map accelerometer x to gamma, and y to beta (roughly)
+    double rawGamma = event.x; // Corresponds to gamma (left-right tilt)
+    double rawBeta = event.y;  // Corresponds to beta (front-back tilt)
 
-    // Raw input from gyroscope (angular velocity)
-    double rawDx = -event.y; // Invert as per typical parallax expectations
-    double rawDy = event.x;
+    // Normalize raw values to a range like -1 to 1 based on max tilt
+    // Max acceleration is approx 9.8 (g), so normalize by that.
+    rawGamma = rawGamma / 9.8;
+    rawBeta = rawBeta / 9.8;
+
+    // Clamp values to -1 to 1 range
+    rawGamma = math.max(-1.0, math.min(1.0, rawGamma));
+    rawBeta = math.max(-1.0, math.min(1.0, rawBeta));
+
+    // The JS `handleOrientation` uses gamma and beta directly.
+    // Flutter's orientation (portrait/landscape) can be obtained via MediaQuery
+    // However, the JS explicitly uses `screen.orientation.angle` which is specific to web.
+    // For Flutter, we will approximate by using the device orientation from build context.
+
+    final currentOrientation = MediaQuery.of(context).orientation;
+    double g = rawGamma; // event.gamma in JS
+    double b = rawBeta;  // event.beta in JS
+
+    double rawDx = 0, rawDy = 0;
+
+    // Replicating JS angle logic
+    // const angle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    // if (angle === 90) { rawDx = b; rawDy = -g; }
+    // else if (angle === -90 || angle === 270) { rawDx = -b; rawDy = g; }
+    // else { rawDx = g; rawDy = b; }
+    // Based on my experience and typical sensor mapping, for Flutter we might adjust this.
+    // For now, let's keep it simple and assume portrait-like mapping, or
+    // directly use raw values if the JS logic is more about remapping physical tilt to screen X/Y.
+
+    // After reviewing the JS logic: it maps device tilt to screen-relative X/Y for parallax.
+    // In Flutter, with an always-portrait-up perspective for the card, we can directly map.
+    // Or, more accurately, we need to convert device orientation to screen orientation.
+
+    // Let's simplify for now to get some movement.
+    // We will use rawDx = -b and rawDy = g for portrait, and adjust based on landscape.
+    if (currentOrientation == Orientation.portrait) {
+      rawDx = -b; // Tilt front/back maps to vertical movement, so reversed
+      rawDy = g;  // Tilt left/right maps to horizontal movement
+    } else { // Landscape
+      // Need to adjust this based on how the device is held in landscape
+      // For now, let's keep it simple, assume landscape left.
+      // JS has: angle === 90 -> rawDx = b; rawDy = -g;
+      rawDx = b;
+      rawDy = -g;
+    }
+
 
     // Filter to smooth out jitter
     _filteredDx = _filteredDx * (1 - _gyroFilterFactor) + rawDx * _gyroFilterFactor;
     _filteredDy = _filteredDy * (1 - _gyroFilterFactor) + rawDy * _gyroFilterFactor;
 
     // Normalize filtered values to a range (e.g., -1 to 1) for consistent parallax
-    double normalizedDx = _filteredDx / _movementSensitivity;
-    double normalizedDy = _filteredDy / _movementSensitivity;
+    double normalizedDx = _filteredDx; // The JS version normalizes after filtering and angle. My previous had a /_movementSensitivity here.
+    double normalizedDy = _filteredDy;
 
     normalizedDx = math.max(-1.0, math.min(1.0, normalizedDx));
     normalizedDy = math.max(-1.0, math.min(1.0, normalizedDy));
@@ -96,9 +147,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     final double diffY = (normalizedDy - _currentDy).abs();
     double movementSpeed = diffX + diffY;
 
-    developer.log('MovementSpeed: ${movementSpeed.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
+    developer.log('MovementSpeed before threshold: ${movementSpeed.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
 
-    // Adjust movementSpeed based on threshold for opacity
     if (movementSpeed < _speedThreshold) {
       movementSpeed = 0;
     } else {
@@ -107,11 +157,19 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
     _targetDx = normalizedDx;
     _targetDy = normalizedDy;
-    _targetHoloOpacity = math.min(1.0, movementSpeed * _holoIntensity); // Use _holoIntensity here
+    _targetHoloOpacity = math.min(1.0, movementSpeed * _movementSensitivity); // JS uses MOVEMENT_SENSITIVITY here for opacity
 
-    developer.log('TargetHoloOpacity: ${_targetHoloOpacity.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
+    developer.log('TargetHoloOpacity: ${_targetHoloOpacity.toStringAsFixed(3)} (MovementSpeed: ${movementSpeed.toStringAsFixed(3)})', name: 'NativeFlipCardScreen');
 
     _updateHologramAnimation();
+  }
+
+  void _handleGyroscope(GyroscopeEvent event) {
+    // We are no longer using Gyroscope events for dx/dy calculation directly for parallax.
+    // We will use Accelerometer events for that, similar to DeviceOrientationEvent in JS.
+    // However, this event stream can still be used as a trigger for hologram visibility if needed.
+    // For now, we rely on Accelerometer for movement and opacity.
+    developer.log('Gyroscope data (not used for parallax currently): x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
   }
 
   void _updateHologramAnimation() {
@@ -675,116 +733,168 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   Widget _buildHologramEffect(double borderRadius) {
-    // Implementing multiple hologram layers as per the HTML/CSS
-    final double holoShiftX = _currentDx * 30.0; // Increased sensitivity for more depth
-    final double holoShiftY = _currentDy * 30.0;
+    // Hologram layers data based on JS layerData
+    final List<Map<String, dynamic>> jsLayerData = [
+      {'class': 'pattern-hex', 'depth': 1.5, 'isGradient': false},
+      {'class': 'pattern-text', 'depth': 3.0, 'isGradient': false},
+      {'class': 'pattern-wave', 'depth': 2.0, 'isGradient': false}, // Default depth for pattern-wave from JS is 2
+      {'class': 'holo-gradient', 'depth': 5.0, 'isGradient': true},
+    ];
 
-    // Holo-gradient from CSS - more vibrant and colorful
+    // Glare properties
+    final double glareParallaxMultiplier = 30.0; // From JS
+    final double layerParallaxMultiplier = 5.0; // From JS
+    final double opacityVal = _holoOpacity * _holoIntensity;
+
+    // Glare shift values
+    final double glareX = _currentDx * glareParallaxMultiplier;
+    final double glareY = _currentDy * glareParallaxMultiplier;
+
+    // Holo-gradient from CSS
     final holoGradient = LinearGradient(
-      begin: Alignment.topLeft,
+      begin: Alignment(math.cos(115 * math.pi / 180), math.sin(115 * math.pi / 180)),
       end: Alignment.bottomRight,
       colors: [
         Colors.transparent,
-        _accentColor.withAlpha((255 * 0.2).round()),
-        Colors.purple.withAlpha((255 * 0.15).round()),
-        Colors.green.withAlpha((255 * 0.1).round()),
-        Colors.white.withAlpha((255 * 0.25).round()),
-        _accentColor.withAlpha((255 * 0.2).round()),
+        _accentColor.withAlpha((255 * 0.1).round()),
+        Colors.white.withAlpha((255 * 0.3).round()),
+        _accentColor.withAlpha((255 * 0.1).round()),
         Colors.transparent,
       ],
-      stops: const [0.2, 0.35, 0.45, 0.5, 0.55, 0.65, 0.8],
+      stops: const [0.30, 0.45, 0.50, 0.55, 0.70],
     );
 
     // Surface Glare gradient from CSS
     final surfaceGlareGradient = LinearGradient(
-      begin: Alignment.topLeft,
+      begin: Alignment(math.cos(115 * math.pi / 180), math.sin(115 * math.pi / 180)),
       end: Alignment.bottomRight,
       colors: [
         Colors.transparent,
-        Colors.white.withAlpha((255 * 0.5).round()),
+        Colors.white.withAlpha((255 * 0.4).round()),
         Colors.transparent,
       ],
       stops: const [0.4, 0.5, 0.6],
     );
 
+    // SVG Data URLs for patterns
+    const String patternHexSvg = """
+      <svg width='40' height='70' viewBox='0 0 40 70' xmlns='http://www.w3.org/2000/svg'>
+        <g fill='none' stroke='rgba(0, 242, 255, 0.5)' stroke-width='1'>
+          <path d='M20 5 L35 15 L35 35 L20 45 L5 35 L5 15 Z' />
+        </g>
+      </svg>
+    """;
+
+    const String patternTextSvg = """
+      <svg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'>
+        <text x='50' y='50' font-family='Arial' font-weight='bold' font-size='12' fill='rgba(255,255,255,0.3)' text-anchor='middle' transform='rotate(-45 50 50)'>ID TOKEN</text>
+      </svg>
+    """;
+
     return Positioned.fill(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Opacity(
-          opacity: _holoOpacity * _holoIntensity,
-          child: Stack(
-            children: [
-              // Layer 1: Base Hologram Gradient
-              Transform.translate(
-                offset: Offset(-holoShiftX * 0.8, -holoShiftY * 0.8),
-                child: Transform.scale(
-                  scale: 2.5,
-                  child: Container(
-                    decoration: BoxDecoration(gradient: holoGradient),
-                    child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.2).round()), BlendMode.screen),
-                      child: Container(color: Colors.transparent),
+          opacity: opacityVal, // Main hologram opacity controlled by movement
+          child: ColorFiltered(
+            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.colorDodge), // .hologram-container mix-blend-mode
+            child: Stack(
+              children: jsLayerData.map((layer) {
+                final double depth = layer['depth'];
+                final bool isGradient = layer['isGradient'];
+                final String className = layer['class'];
+
+                final double sx = _currentDx * depth * layerParallaxMultiplier;
+                final double sy = _currentDy * depth * layerParallaxMultiplier;
+
+                Widget layerWidget;
+                BlendMode blendMode = BlendMode.screen; // Default blend mode
+
+                switch (className) {
+                  case 'pattern-hex':
+                    blendMode = BlendMode.overlay;
+                    layerWidget = SvgPicture.string(
+                      patternHexSvg,
+                      width: 40,
+                      height: 70,
+                      fit: BoxFit.fill,
+                      colorFilter: ColorFilter.mode(_accentColor.withAlpha((255 * 0.5).round()), BlendMode.srcIn),
+                    );
+                    break;
+                  case 'pattern-text':
+                    blendMode = BlendMode.softLight;
+                    layerWidget = SvgPicture.string(
+                      patternTextSvg,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.fill,
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.3).round()), BlendMode.srcIn),
+                    );
+                    break;
+                  case 'pattern-wave':
+                    blendMode = BlendMode.screen;
+                    layerWidget = Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment.center,
+                          radius: 0.5,
+                          colors: [
+                            Colors.transparent,
+                            Colors.white.withAlpha((255 * 0.1).round()), // rgba(255, 255, 255, 0.1)
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.05, 0.2],
+                        ),
+                      ),
+                    );
+                    break;
+                  case 'holo-gradient':
+                    blendMode = BlendMode.screen;
+                    layerWidget = Container(
+                      decoration: BoxDecoration(gradient: holoGradient),
+                    );
+                    break;
+                  default:
+                    layerWidget = Container();
+                }
+
+                // Apply specific opacity for gradient layer as per JS
+                final double currentLayerOpacity = isGradient ? (opacityVal * 0.7) : opacityVal;
+
+                return Transform.translate(
+                  offset: Offset(-sx, -sy),
+                  child: Transform.scale(
+                    scale: 2.0, // background-size: 200% 200% is common for all
+                    child: Opacity(
+                      opacity: currentLayerOpacity,
+                      child: ColorFiltered(
+                        colorFilter: ColorFilter.mode(Colors.white, blendMode),
+                        child: SizedBox.expand(
+                          child: layerWidget,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList()
+                ..add( // Add Surface Glare separately
+                  Transform.translate(
+                    offset: Offset(glareX, glareY),
+                    child: Transform.scale(
+                      scale: 2.0,
+                      child: Opacity(
+                        opacity: opacityVal, // Glare opacity
+                        child: ColorFiltered(
+                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.overlay),
+                          child: Container(
+                            decoration: BoxDecoration(gradient: surfaceGlareGradient),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Layer 2: Deeper Parallax
-              Transform.translate(
-                offset: Offset(-holoShiftX * 1.2, -holoShiftY * 1.2),
-                child: Transform.scale(
-                  scale: 2.5,
-                  child: Container(
-                    decoration: BoxDecoration(gradient: holoGradient),
-                    child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.25).round()), BlendMode.softLight),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ),
-              ),
-              // Layer 3: Even Deeper Parallax
-               Transform.translate(
-                offset: Offset(-holoShiftX * 1.6, -holoShiftY * 1.6),
-                child: Transform.scale(
-                  scale: 2.5,
-                  child: Container(
-                    decoration: BoxDecoration(gradient: holoGradient),
-                    child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.3).round()), BlendMode.screen),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ),
-              ),
-              // Layer 4: Deepest Parallax
-               Transform.translate(
-                offset: Offset(-holoShiftX * 2.0, -holoShiftY * 2.0),
-                child: Transform.scale(
-                  scale: 2.5,
-                  child: Container(
-                    decoration: BoxDecoration(gradient: holoGradient),
-                    child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.softLight),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ),
-              ),
-              // Surface Glare (from CSS)
-              Transform.translate(
-                offset: Offset(-holoShiftX * 0.6, -holoShiftY * 0.6),
-                child: Transform.scale(
-                  scale: 2.0,
-                  child: Container(
-                    decoration: BoxDecoration(gradient: surfaceGlareGradient),
-                    child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.overlay),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
