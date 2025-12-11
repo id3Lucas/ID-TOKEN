@@ -21,7 +21,7 @@ html {
   align-items: center;
   perspective: 2500px;
 }
-
+body{flex-direction:column}
 /* --- VARIABLES --- */
 :root {
   --card-h: min(136vw, 80vh);
@@ -71,6 +71,7 @@ html {
   cursor: pointer;
   border-radius: var(--radius);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 242, 255, 0.1);
+  margin: 2vh 2vw;
 }
 
 /* --- FACES --- */
@@ -689,11 +690,12 @@ html {
 }
 
 .glass-btn-icon {
-  position: fixed;
-  right: 30px;
-  top: max(30px, env(safe-area-inset-top) + 20px);
+  position: relative;
+  margin: 2vh;
+  max-width: 2rem;
+  aspect-ratio: 1/1;
   width: 50px;
-  height: 50px;
+  height: auto;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
