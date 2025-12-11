@@ -134,3 +134,10 @@ Despite these changes, the `flutter run` command still attempts to launch the ap
 4.  **Verification:**
     - Re-ran `flutter analyze` after refactoring.
     - **Result:** **0 issues found**. The project is now clean and follows better architectural practices.
+
+5.  **Simplify `Vue id token version light`:**
+    - **Request:** User requested to remove all holographic animations, the flip card mechanic, and the back side of the card from the "light" version of the ID view.
+    - **Implementation:**
+        - Modified `Vue id token version light/PresentationView.html` to remove the back card (`.id-card-back`), hologram elements, and simplify the script (no physics).
+        - Modified `Vue id token version light/styles.css` to clean up unused styles.
+    - **Result:** A static, lightweight front-facing ID card view.
