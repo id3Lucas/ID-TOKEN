@@ -69,7 +69,8 @@ class _HologramOverlayState extends State<HologramOverlay>
       final double dy = (event.x * sensitivity).clamp(-1.0, 1.0);
       
       final double speed = math.sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-      final double newOpacity = (speed * 2.0).clamp(0.0, 1.0);
+      // Clamp to 0.5 max to keep text readable
+      final double newOpacity = (speed * 2.0).clamp(0.0, 0.5);
 
       setState(() {
          _targetOffset = Offset(dx, dy);
@@ -297,7 +298,10 @@ class _ShaderHologramPainter extends CustomPainter {
     // uTexWave (2)
     shader.setImageSampler(2, waveImage);
 
-    final paint = Paint()..shader = shader;
+    final paint = Paint()
+      ..shader = shader
+      ..blendMode = BlendMode.screen; // Use Screen blend to preserve background gradient
+      
     canvas.drawRect(Offset.zero & size, paint);
   }
 
