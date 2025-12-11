@@ -40,7 +40,7 @@ A new screen `NativeFlipCardScreen` (`lib/screens/native_flip_card_screen.dart`)
     *   **Portrait:** Implemented responsive sizing for elements within `_buildFrontContent` and `_buildBackContent` using `cardWidth` and `cardHeight` proportions. This includes dynamic font sizes, image sizes, padding, and spacing.
     *   **Landscape:** Refactored the landscape layout to use `OrientationBuilder` with a `Row`-based design. Font sizes are now calculated with a helper function `_calculateFontSize` to ensure they fit within the available space and are harmonized.
 2.  **Holographic Animation Removed:** All hologram and sensor-related code has been removed from the `NativeFlipCardScreen` for a clean, stable implementation. The focus is now on a functional and responsive card layout.
-3.  **Project Cleanup:** Unnecessary files (`native_flip_card_screen_v2.dart`, `v3`, `v4`, `styles.css`, `PresentationView.html`) have been deleted to clean up the project.
+3.  **Project Cleanup:** Unnecessary files and code have been deleted to clean up the project.
 4.  **Content Styling:** Fine-tuned font sizes, letter spacing, and shadows to match the original HTML/CSS more precisely where possible.
 5.  **Basic Structure & Flip Animation:** The screen implements a basic card structure with 3D flip animation using `AnimationController` and `Transform`.
 
