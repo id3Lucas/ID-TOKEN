@@ -166,8 +166,9 @@ To match the web version's visual fidelity, the holographic ID card effect was p
     - Draws two dynamic gradient layers:
         - **Surface Glare:** A white overlay that shifts based on device tilt.
         - **Holo Gradient:** A multi-stop cyan/white gradient that moves in opposition to the glare for depth.
+    - **Refinement (Depth & Layers):** Added "Hexagon", "Text", and "Wave" pattern layers with distinct parallax depth factors to match the original complexity.
 
 2.  **Integration:**
     - Modified `lib/widgets/native_id_card_front.dart` to include `HologramOverlay` in its stack, positioned between the background and the content.
 
-3.  **Result:** The native Flutter card now reacts to physical device movement with high-performance 60fps animations.
+3.  **Result:** The native Flutter card now reacts to physical device movement with high-performance 60fps animations and realistic depth.
