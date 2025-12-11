@@ -62,8 +62,10 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   void _setupMotionDetection() {
+    developer.log('Setting up motion detection...', name: 'NativeFlipCardScreen');
     // Subscribe to gyroscope events
     _gyroscopeSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
+      developer.log('Gyroscope event received.', name: 'NativeFlipCardScreen');
       _handleGyroscope(event);
     });
   }
@@ -269,13 +271,10 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               Positioned.fill(
                 child: Padding(
                   padding: EdgeInsets.all(padding),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                if (isFront) _buildFrontContent(cardWidth, cardHeight, orientation),
-                                if (!isFront) _buildBackContent(cardWidth, cardHeight, orientation),
-                              ],
-                            ),                ),
+                  child: isFront
+                      ? _buildFrontContent(cardWidth, cardHeight, orientation)
+                      : _buildBackContent(cardWidth, cardHeight, orientation),
+                ),
               ),
             ],
           ),
@@ -334,6 +333,14 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
         ],
       ),
     );
+  }
+
+  double _calculateFontSize(double baseSize, double scaleFactor, double cardWidth, double cardHeight) {
+    // Use a combination of width and height to determine the scale
+    double scale = (cardWidth + cardHeight) / 1000;
+    double fontSize = baseSize * scale * scaleFactor;
+    // Clamp the font size to a reasonable range
+    return fontSize.clamp(8.0, baseSize);
   }
 
   Widget _buildFrontContent(double cardWidth, double cardHeight, Orientation orientation) {
@@ -497,7 +504,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _textColor,
-                    fontSize: cardHeight * 0.05,
+                    fontSize: _calculateFontSize(22, 1.2, cardWidth, cardHeight),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -506,7 +513,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
                   'ID Document data',
                   style: TextStyle(
                     color: _accentColor,
-                    fontSize: cardHeight * 0.035,
+                    fontSize: _calculateFontSize(16, 1.2, cardWidth, cardHeight),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -522,7 +529,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('ID Token', style: TextStyle(color: _primaryColor, fontSize: cardHeight * 0.04, fontWeight: FontWeight.w700)),
+                    Text('ID Token', style: TextStyle(color: _primaryColor, fontSize: _calculateFontSize(18, 1.2, cardWidth, cardHeight), fontWeight: FontWeight.w700)),
                     SizedBox(
                       width: cardHeight * 0.1,
                       height: cardHeight * 0.1,
@@ -552,7 +559,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
                 SizedBox(height: cardHeight * 0.02),
                 Text(
                   '>> 8473 9283 1102 <<',
-                  style: TextStyle(color: _accentColor, fontSize: cardHeight * 0.04, fontFamily: 'monospace'),
+                  style: TextStyle(color: _accentColor, fontSize: _calculateFontSize(18, 1.2, cardWidth, cardHeight), fontFamily: 'monospace'),
                 ),
               ],
             ),
@@ -563,50 +570,108 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   Widget _buildBackContent(double cardWidth, double cardHeight, Orientation orientation) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // QR Code
-        Container(
-          width: cardWidth * 0.4, // Responsive width
-          height: cardWidth * 0.4, // Responsive height
-          padding: EdgeInsets.all(cardWidth * 0.015), // Responsive padding
-          color: Colors.white, // background #fff
-          child: Image.asset('assets/qr.png', fit: BoxFit.contain), // User-provided image name
-        ),
-        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
-        // Disclaimer Text
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: cardWidth * 0.03), // Responsive horizontal padding
-          child: Column(
-            children: [
-              Text(
-                'BIOSEAL CODE', // Extracted from HTML
-                textAlign: TextAlign.center,
-                style: TextStyle(color: _primaryColor, fontSize: cardWidth * 0.045, fontWeight: FontWeight.bold), // Responsive font size
-              ),
-              SizedBox(height: cardHeight * 0.01),
-                              Text(
-                                'BioSeal Code provides secure multi-factor authentication for verifying identities and authenticating documents through its innovative integration of Visible Digital Seal\'s technology (VDS).', // Extracted from HTML
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.03), // Responsive font size
-                              ),
-                              SizedBox(height: cardHeight * 0.005),
-                              Text(
-                                'It complies with ISO 22385 & 22376 standards.', // Extracted from HTML
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.03), // Responsive font size
-                              ),            ],
+    if (orientation == Orientation.portrait) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // QR Code
+          Container(
+            width: cardWidth * 0.4, // Responsive width
+            height: cardWidth * 0.4, // Responsive height
+            padding: EdgeInsets.all(cardWidth * 0.015), // Responsive padding
+            color: Colors.white, // background #fff
+            child: Image.asset('assets/qr.png', fit: BoxFit.contain), // User-provided image name
           ),
-        ),
-        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
-        // Bottom Text
-        Text(
-          'ID3 TECHNOLOGIES', // Extracted from HTML
-          style: TextStyle(color: _primaryColor, fontSize: cardWidth * 0.035), // Responsive font size
-        ),
-      ],
-    );
+          SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+          // Disclaimer Text
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: cardWidth * 0.03), // Responsive horizontal padding
+            child: Column(
+              children: [
+                Text(
+                  'BIOSEAL CODE', // Extracted from HTML
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _primaryColor, fontSize: cardWidth * 0.045, fontWeight: FontWeight.bold), // Responsive font size
+                ),
+                SizedBox(height: cardHeight * 0.01),
+                                Text(
+                                  'BioSeal Code provides secure multi-factor authentication for verifying identities and authenticating documents through its innovative integration of Visible Digital Seal\'s technology (VDS).', // Extracted from HTML
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.03), // Responsive font size
+                                ),
+                                SizedBox(height: cardHeight * 0.005),
+                                Text(
+                                  'It complies with ISO 22385 & 22376 standards.', // Extracted from HTML
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.03), // Responsive font size
+                                ),            ],
+            ),
+          ),
+          SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+          // Bottom Text
+          Text(
+            'ID3 TECHNOLOGIES', // Extracted from HTML
+            style: TextStyle(color: _primaryColor, fontSize: cardWidth * 0.035), // Responsive font size
+          ),
+        ],
+      );
+    } else { // Landscape layout
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Left side: QR Code
+          Expanded(
+            flex: 2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: cardHeight * 0.4, // Responsive to card height
+                  height: cardHeight * 0.4,
+                  padding: EdgeInsets.all(cardHeight * 0.015),
+                  color: Colors.white,
+                  child: Image.asset('assets/qr.png', fit: BoxFit.contain),
+                ),
+              ],
+            ),
+          ),
+          // Right side: Disclaimer text
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: EdgeInsets.all(cardHeight * 0.03),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'BIOSEAL CODE',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _primaryColor, fontSize: _calculateFontSize(18, 1.2, cardWidth, cardHeight), fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: cardHeight * 0.01),
+                  Text(
+                    'BioSeal Code provides secure multi-factor authentication for verifying identities and authenticating documents through its innovative integration of Visible Digital Seal\'s technology (VDS).',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: _calculateFontSize(12, 1.2, cardWidth, cardHeight)),
+                  ),
+                  SizedBox(height: cardHeight * 0.005),
+                  Text(
+                    'It complies with ISO 22385 & 22376 standards.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: _calculateFontSize(12, 1.2, cardWidth, cardHeight)),
+                  ),
+                  SizedBox(height: cardHeight * 0.02),
+                  Text(
+                    'ID3 TECHNOLOGIES',
+                    style: TextStyle(color: _primaryColor, fontSize: _calculateFontSize(14, 1.2, cardWidth, cardHeight)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildHologramEffect(double borderRadius) {
