@@ -36,30 +36,20 @@ This was a challenging process due to deep caching and numerous references to th
 A new screen `NativeFlipCardScreen` (`lib/screens/native_flip_card_screen.dart`) was created to replace the WebView-based card for `PresentationView.html`.
 
 **Completed Tasks:**
-1.  **Resolved `RenderFlex overflow` errors:** Implemented responsive sizing for elements within `_buildFrontContent` and `_buildBackContent` using `cardWidth` and `cardHeight` proportions. This includes dynamic font sizes, image sizes, padding, and spacing.
-2.  **Improved Hologram Animation Fidelity:** Tuned parallax values (`holoShiftX`, `holoShiftY` multipliers), increased opacities of `ColorFiltered` layers, and refined gradient colors/stops within `_buildHologramEffect` to achieve a more visually impactful effect closer to the original HTML.
+1.  **Resolved `RenderFlex overflow` errors:**
+    *   **Portrait:** Implemented responsive sizing for elements within `_buildFrontContent` and `_buildBackContent` using `cardWidth` and `cardHeight` proportions. This includes dynamic font sizes, image sizes, padding, and spacing.
+    *   **Landscape:** Refactored the landscape layout to use `OrientationBuilder` with a `Row`-based design. Font sizes are now calculated with a helper function `_calculateFontSize` to ensure they fit within the available space and are harmonized.
+2.  **Improved Hologram Animation Fidelity:**
+    *   **Sensor Data:** Switched from `GyroscopeEvent` to `AccelerometerEvent` for parallax calculation to better simulate the original JavaScript's `DeviceOrientationEvent`. Adjusted sensor data processing to correctly calculate `movementSpeed`.
+    *   **Authentic Holographic Effect:** Re-implemented the hologram effect using a `ShaderMask` with a rainbow-like `LinearGradient`. This creates an iridescent sheen on the pattern layers, mimicking a real holographic security sticker. The gradient's position is animated based on sensor input, making the colors shift as you tilt the phone.
+    *   **Patterns and Depth:** Accurately replicated the four original pattern layers (`pattern-hex`, `pattern-text`, `pattern-wave`, `holo-gradient`) with their specific parallax depths, blend modes, and SVG data, creating a deep and complex visual effect.
 3.  **Content Styling:** Fine-tuned font sizes, letter spacing, and shadows to match the original HTML/CSS more precisely where possible.
-4.  **Gyroscope Integration:** `sensors_plus` is integrated to provide motion data (`_currentDx`, `_currentDy`) for the hologram effect.
+4.  **Gyroscope Integration:** `sensors_plus` is integrated to provide motion data for the animation.
 5.  **Basic Structure & Flip Animation:** The screen implements a basic card structure with 3D flip animation using `AnimationController` and `Transform`.
 
 ### Static Analysis and Deprecation Cleanup (COMPLETE)
 All warnings and deprecations reported by `flutter analyze` have been addressed across the project.
 
-**Specific Changes Include:**
-1.  **`lib/screens/file_browser_screen.dart`**:
-    *   Replaced deprecated `WillPopScope` with `PopScope`, using `canPop` and `onPopInvokedWithResult` for navigation control.
-    *   Declared `_pathHistory` field as `final`.
-2.  **`lib/screens/login_screen.dart`**:
-    *   Added `if (!mounted) return;` checks before using `BuildContext` (e.g., `Navigator.of(context)`, `ScaffoldMessenger.of(context)`) after `await` calls to resolve `use_build_context_synchronously` warnings.
-3.  **`lib/screens/repo_list_screen.dart`**:
-    *   Added an `if (!mounted) return;` check before using `BuildContext` in the `_signOut` method after an `await` call.
-4.  **`lib/screens/native_flip_card_screen.dart`**:
-    *   Updated deprecated `gyroscopeEvents.listen` to `gyroscopeEventStream().listen`.
-    *   Replaced all instances of `Color.withOpacity(value)` with `Color.withAlpha((255 * value).round())` to address deprecation warnings and avoid precision loss.
-5.  **`lib/screens/webview_screen.dart`**:
-    *   Removed unused `import 'dart:convert';`.
-    *   Removed unnecessary `import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';`.
-    *   Removed unused local variable `originalLinkTag`.
 
 ## Important Environment Notes
 

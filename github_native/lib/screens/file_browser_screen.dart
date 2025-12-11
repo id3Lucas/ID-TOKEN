@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/github_service.dart';
 import '../models/repository.dart';
-import 'native_flip_card_screen.dart'; // Import the new native flip card screen
+import 'native_flip_card_screen_v2.dart'; // Import the new native flip card screen
 
 class FileBrowserScreen extends StatefulWidget {
   final String owner;
@@ -45,7 +45,7 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
     } else if (content.type == 'file' && content.name.endsWith('.html') && content.downloadUrl != null) {
       if (content.name == 'PresentationView.html') {
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => NativeFlipCardScreen(fileName: content.name),
+          builder: (context) => NativeFlipCardScreenV2(fileName: content.name),
         ));
       } else {
         Navigator.of(context).pushNamed(
