@@ -184,29 +184,32 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              // Content (Text, Image etc.)
-              if (isFront)
-                NativeIDCardFront(
-                  cardWidth: cardWidth,
-                  cardHeight: cardHeight,
-                  orientation: orientation,
-                  primaryColor: _primaryColor,
-                  secondaryColor: _secondaryColor,
-                  accentColor: _accentColor,
-                  textColor: _textColor,
-                  darkGreyColor: _darkGreyColor,
-                )
-              else
-                NativeIDCardBack(
-                  cardWidth: cardWidth,
-                  cardHeight: cardHeight,
-                  orientation: orientation,
-                  primaryColor: _primaryColor,
-                  textColor: _textColor,
-                ),
-            ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: Stack(
+              children: [
+                // Content (Text, Image etc.)
+                if (isFront)
+                  NativeIDCardFront(
+                    cardWidth: cardWidth,
+                    cardHeight: cardHeight,
+                    orientation: orientation,
+                    primaryColor: _primaryColor,
+                    secondaryColor: _secondaryColor,
+                    accentColor: _accentColor,
+                    textColor: _textColor,
+                    darkGreyColor: _darkGreyColor,
+                  )
+                else
+                  NativeIDCardBack(
+                    cardWidth: cardWidth,
+                    cardHeight: cardHeight,
+                    orientation: orientation,
+                    primaryColor: _primaryColor,
+                    textColor: _textColor,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
