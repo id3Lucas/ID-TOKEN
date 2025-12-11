@@ -171,3 +171,56 @@ To match the web version's visual fidelity, the holographic ID card effect was p
     - **Visual Adjustments:** 
         - Removed the sweeping "Beam" and "Surface Glare" gradient layers as requested.
         - Changed the "Wave" pattern from a single ripple to a tiled grid of concentric ripples to matching the original CSS design.
+
+### **Shader Upgrade & Visual Tuning (Complete)**
+
+The simplified `WebView` approach was fully replaced by a **Native Flutter Implementation** using **Fragment Shaders** for "God Tier" visuals.
+
+1.  **Rendering Engine:**
+    - Switched from `CustomPainter` drawing commands to a GLSL Fragment Shader (`shaders/hologram.frag`).
+    - This enables **True Iridescence** (rainbow oil effects), **Chromatic Aberration** (RGB splitting), and complex composite blending (`BlendMode.screen`) that are impossible with standard canvas APIs.
+
+2.  **Optimizations:**
+    - **Bitmap Caching:** The Text and Hexagon layers are pre-rendered into static bitmaps (`ui.Image`) on load. The shader samples these textures, ensuring zero CPU overhead for drawing geometry.
+    - **Physics:** Implemented a physics-based spring system, but reverted to **Linear Interpolation (Lerp)** as per user request for a "smooth slide" feel.
+    - **Sensitivity:** Tuned gyroscope sensitivity to `0.3` (subtle).
+
+3.  **Visual Tuning:**
+    - **Hexagon Size:** Tuned to `45.0 x 75.0` (Medium density).
+    - **Text Visibility:** Reduced to 30% in shader to avoid overpowering the card data.
+    - **Opacity:** Global opacity capped at `0.3` for a premium "foil stamp" look.
+
+## **Hologram Tuning Guide**
+
+To adjust the feel of the hologram in the future, modify the following metrics:
+
+### **1. Sliding Speed & Range**
+*   **File:** `lib/widgets/hologram_overlay.dart`
+*   **Variable:** `sensitivity` in `_startListening()`
+*   **Current Value:** `0.3`
+*   **Effect:**
+    *   **Increase (e.g., 3.0):** The hologram slides *further* and *faster* when you tilt the phone.
+    *   **Decrease (e.g., 0.1):** The hologram stays nearly still, sticking closely to the center.
+
+### **2. Global Brightness (Opacity)**
+*   **File:** `lib/widgets/hologram_overlay.dart`
+*   **Variable:** `.clamp(0.0, 0.3)` in `_startListening()`
+*   **Current Value:** `0.3` (Max 30%)
+*   **Effect:**
+    *   **Increase (e.g., 0.8):** The hologram becomes bright and opaque, potentially hiding the text underneath.
+    *   **Decrease (e.g., 0.1):** The hologram becomes a barely visible ghost effect.
+
+### **3. Layer Balance (Hex vs Text vs Wave)**
+*   **File:** `shaders/hologram.frag`
+*   **Variables:** `sampleLayer(..., alpha)` calls in `main()`
+*   **Current Values:**
+    *   **Wave:** `0.05` (Background texture)
+    *   **Hex:** `0.3` (Main Honeycomb)
+    *   **Text:** `0.3` (Foreground ID TOKEN text)
+*   **Effect:** Increase these numbers (up to 1.0) to make specific layers stand out more.
+
+### **4. Hexagon Size**
+*   **File:** `lib/widgets/hologram_overlay.dart`
+*   **Variables:** `width` and `height` in `_drawHexGrid()`
+*   **Current Values:** `45.0` (width), `75.0` (height)
+*   **Effect:** Increase values for fewer, larger hexagons. Decrease for a denser grid.
