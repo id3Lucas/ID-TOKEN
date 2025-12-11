@@ -142,8 +142,8 @@ class _HologramOverlayState extends State<HologramOverlay>
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    const double width = 30.0;
-    const double height = 50.0; 
+    const double width = 45.0;
+    const double height = 75.0; 
 
     for (double y = -height; y < size.height + height; y += height * 0.75) {
       for (double x = -width; x < size.width + width; x += width) {
