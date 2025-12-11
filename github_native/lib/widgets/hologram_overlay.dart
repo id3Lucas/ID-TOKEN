@@ -64,13 +64,13 @@ class _HologramOverlayState extends State<HologramOverlay>
 
   void _startListening() {
     _gyroSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
-      const double sensitivity = 0.3;
+      const double sensitivity = 0.3; // Reverted to original subtle slide
       final double dx = (event.y * sensitivity).clamp(-1.0, 1.0);
       final double dy = (event.x * sensitivity).clamp(-1.0, 1.0);
       
       final double speed = math.sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-      // Clamp to 0.5 max to keep text readable
-      final double newOpacity = (speed * 2.0).clamp(0.0, 0.5);
+      // Clamp to 0.3 max to keep text readable and effect subtle
+      final double newOpacity = (speed * 2.0).clamp(0.0, 0.3);
 
       setState(() {
          _targetOffset = Offset(dx, dy);
@@ -142,8 +142,8 @@ class _HologramOverlayState extends State<HologramOverlay>
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    const double width = 60.0;
-    const double height = 100.0; 
+    const double width = 30.0;
+    const double height = 50.0; 
 
     for (double y = -height; y < size.height + height; y += height * 0.75) {
       for (double x = -width; x < size.width + width; x += width) {

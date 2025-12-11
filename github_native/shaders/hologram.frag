@@ -56,22 +56,22 @@ void main() {
     
     // Layer 1: Waves (Background)
     // Low Parallax (0.3), No Split, Low Alpha
-    vec4 colWave = sampleLayer(uTexWave, uv, 0.2, 0.0, 0.08);
+    vec4 colWave = sampleLayer(uTexWave, uv, 0.2, 0.0, 0.05);
 
     // Layer 2: Hex (Middle)
     // Medium Parallax (0.5), Slight Split, Medium Alpha
-    vec4 colHex = sampleLayer(uTexHex, uv, 0.4, 0.5, 0.55);
+    vec4 colHex = sampleLayer(uTexHex, uv, 0.4, 0.5, 0.3);
     
     // Add Iridescence to Hex
     vec3 iris = iridescence(uv, 0.0);
     colHex.rgb *= mix(vec3(1.0), iris, 0.5); // 50% Rainbow
 
     // Layer 3: Text (Foreground)
-    // High Parallax (1.0), High Split, Reduced Alpha from 1.0 -> 0.5
-    vec4 colText = sampleLayer(uTexText, uv, 0.8, 2.0, 0.5);
+    // High Parallax (1.0), High Split, Reduced Alpha from 0.5 -> 0.3
+    vec4 colText = sampleLayer(uTexText, uv, 0.8, 2.0, 0.3);
     
     // Add bright Iridescence to Text
-    colText.rgb += iridescence(uv, 1.0) * colText.a * 0.3;
+    colText.rgb += iridescence(uv, 1.0) * colText.a * 0.2;
 
 
     // --- COMPOSITING (Screen Blend) ---
