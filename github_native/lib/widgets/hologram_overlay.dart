@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 class HologramOverlay extends StatefulWidget {
-  final Widget? child;
-
-  const HologramOverlay({super.key, this.child});
+  const HologramOverlay({super.key});
 
   @override
   State<HologramOverlay> createState() => _HologramOverlayState();
@@ -18,11 +16,13 @@ class _HologramOverlayState extends State<HologramOverlay>
     with SingleTickerProviderStateMixin {
   StreamSubscription<GyroscopeEvent>? _gyroSubscription;
   
-  // Offset range: -1.0 to 1.0
   Offset _holoOffset = Offset.zero; 
-  
-  // Smooth out the sensor data
   Offset _targetOffset = Offset.zero;
+
+  // Cached images for static patterns
+  ui.Image? _hexImage;
+  ui.Image? _textImage;
+  Size? _cachedSize;
 
   late AnimationController _controller;
 
@@ -31,32 +31,19 @@ class _HologramOverlayState extends State<HologramOverlay>
     super.initState();
     _controller = AnimationController(
        vsync: this, 
-       duration: const Duration(milliseconds: 16) // ~60fps ticker
+       duration: const Duration(milliseconds: 16) 
     )..addListener(_updateOffset);
     
     _controller.repeat();
-
     _startListening();
   }
 
   void _startListening() {
     _gyroSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
-      // Gyro gives rate of rotation (rad/s). 
-      // We'll treat it as an offset accumulator for a "glare" feel, 
-      // or map tilt directly if we used accelerometer. 
-      // For a "glimmer" that responds to movement, generic gyro is good.
-      
-      // Let's accumulate rotation to shift the gradient, damped.
-      // Alternatively, we can just map the instantaneous rotation rate 
-      // to the offset to make it "flare" when moved.
-      
-      // Experiment: Map rotation rate directly to offset.
-      // y rotation is tilting left/right (affects X offset)
-      // x rotation is tilting forward/back (affects Y offset)
-      
-      final double sensitivity = 0.5;
-      final double dx = (event.y * sensitivity).clamp(-1.5, 1.5);
-      final double dy = (event.x * sensitivity).clamp(-1.5, 1.5);
+      // Lower sensitivity for smoother/less chaotic movement
+      const double sensitivity = 0.3;
+      final double dx = (event.y * sensitivity).clamp(-1.0, 1.0);
+      final double dy = (event.x * sensitivity).clamp(-1.0, 1.0);
       
       setState(() {
          _targetOffset = Offset(dx, dy);
@@ -65,91 +52,63 @@ class _HologramOverlayState extends State<HologramOverlay>
   }
   
   void _updateOffset() {
-     // visual lerp for smoothness
-     final double lerpFactor = 0.1;
+     const double lerpFactor = 0.1;
      setState(() {
         _holoOffset = Offset.lerp(_holoOffset, _targetOffset, lerpFactor)!;
      });
   }
 
-  @override
-  void dispose() {
-    _gyroSubscription?.cancel();
-    _controller.dispose();
-    super.dispose();
+  /// Generates the static pattern bitmaps ONCE
+  Future<void> _generateBitmaps(Size size) async {
+    if (_hexImage != null && _cachedSize == size) return;
+    _cachedSize = size; // Lock execution
+
+    // Make texture slightly larger than screen to allow movement without gaps
+    final Size texSize = Size(size.width * 1.5, size.height * 1.5);
+
+    // 1. Generate Hex Bitmap
+    final ui.PictureRecorder hexRecorder = ui.PictureRecorder();
+    final Canvas hexCanvas = Canvas(hexRecorder);
+    _drawHexGrid(hexCanvas, texSize);
+    final ui.Image hexImg = await hexRecorder.endRecording().toImage(texSize.width.toInt(), texSize.height.toInt());
+
+    // 2. Generate Text Bitmap
+    final ui.PictureRecorder textRecorder = ui.PictureRecorder();
+    final Canvas textCanvas = Canvas(textRecorder);
+    _drawTextGrid(textCanvas, texSize);
+    final ui.Image textImg = await textRecorder.endRecording().toImage(texSize.width.toInt(), texSize.height.toInt());
+
+    if (mounted) {
+      setState(() {
+        _hexImage = hexImg;
+        _textImage = textImg;
+      });
+    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      foregroundPainter: _HologramPainter(offset: _holoOffset),
-      child: widget.child,
-    );
-  }
-}
-
-class _HologramPainter extends CustomPainter {
-  final Offset offset;
-
-  _HologramPainter({required this.offset});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Rect rect = Offset.zero & size;
-    
-    // LAYER 1: HEX PATTERN (Background, slow movement)
-    // Parallax factor: 0.2 (Moves slightly)
-    _paintHexPattern(canvas, size, offset * 0.2);
-
-    // LAYER 2: TEXT PATTERN (Mid-depth)
-    // Parallax factor: 0.5
-    _paintTextPattern(canvas, size, offset * 0.5);
-
-    // LAYER 3: WAVE PATTERN (Mid-depth foreground)
-    // Parallax factor: 0.8
-    _paintWavePattern(canvas, size, offset * 0.8);
-
-    // LAYER 4: HOLO GRADIENT (Foreground effect)
-    // Parallax factor: -0.5 (Opposite movement for depth)
-    _paintHoloGradient(canvas, rect, offset * -0.5);
-    
-    // LAYER 5: SURFACE GLARE (Topmost glass effect)
-    // Parallax factor: 1.2 (Moves with tilt)
-    _paintSurfaceGlare(canvas, rect, offset * 1.2);
-  }
-
-  void _paintHexPattern(Canvas canvas, Size size, Offset layerOffset) {
+  void _drawHexGrid(Canvas canvas, Size size) {
     final Paint paint = Paint()
       ..color = const Color(0xFF00F2FF).withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..blendMode = BlendMode.overlay;
+      ..strokeWidth = 1.5 // Thicker line for better visibility
+      ..blendMode = BlendMode.srcOver; // We apply blend mode on the layer instead
 
-    final double width = 40.0;
-    final double height = 70.0;
-    // Shift grid by offset
-    final double dx = layerOffset.dx * size.width;
-    final double dy = layerOffset.dy * size.height;
+    // Increased size for simpler, less noisy look
+    const double width = 60.0;
+    const double height = 100.0; 
 
-    canvas.save();
-    canvas.translate(dx, dy);
-
-    // Draw grid covering the whole area + buffer for movement
-    // Simple tiling logic
     for (double y = -height; y < size.height + height; y += height * 0.75) {
       for (double x = -width; x < size.width + width; x += width) {
-        // Offset every other row
         double xPos = x;
         if ((y ~/ (height * 0.75)) % 2 != 0) {
           xPos += width * 0.5;
         }
         
-        // Hexagon Path
         final Path path = Path();
-        path.moveTo(xPos + width * 0.5, y); // Top Center
+        path.moveTo(xPos + width * 0.5, y);
         path.lineTo(xPos + width, y + height * 0.25);
         path.lineTo(xPos + width, y + height * 0.75);
-        path.lineTo(xPos + width * 0.5, y + height); // Bottom Center
+        path.lineTo(xPos + width * 0.5, y + height);
         path.lineTo(xPos, y + height * 0.75);
         path.lineTo(xPos, y + height * 0.25);
         path.close();
@@ -157,16 +116,16 @@ class _HologramPainter extends CustomPainter {
         canvas.drawPath(path, paint);
       }
     }
-    canvas.restore();
   }
 
-  void _paintTextPattern(Canvas canvas, Size size, Offset layerOffset) {
+  void _drawTextGrid(Canvas canvas, Size size) {
     final TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: 'ID TOKEN',
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.1),
-          fontSize: 12,
+          // Very subtle white text
+          color: Colors.white.withValues(alpha: 0.15),
+          fontSize: 14,
           fontWeight: FontWeight.bold,
           fontFamily: 'Arial',
         ),
@@ -175,45 +134,119 @@ class _HologramPainter extends CustomPainter {
     );
     textPainter.layout();
 
-    final double spacing = 80.0;
-    // Shift by offset
-    final double dx = layerOffset.dx * size.width;
-    final double dy = layerOffset.dy * size.height;
+    final double spacing = 120.0; // More spacing = simpler
 
-    canvas.save();
-    canvas.translate(dx, dy);
-    
-    // Rotate entire layer -45 deg around center
-    // Or tile rotated text. CSS rotates the text itself.
-    // Let's rotate individual text items for better tiling control
-    
-    // Grid loop
-    for (double y = -spacing; y < size.height + spacing; y += spacing) {
-      for (double x = -spacing; x < size.width + spacing; x += spacing) {
+    for (double y = 0; y < size.height; y += spacing) {
+      for (double x = 0; x < size.width; x += spacing) {
          canvas.save();
          canvas.translate(x, y);
-         canvas.rotate(-math.pi / 4); // -45 degrees
+         canvas.rotate(-math.pi / 4);
          textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
          canvas.restore();
       }
     }
-    canvas.restore();
+  }
+
+  @override
+  void dispose() {
+    _gyroSubscription?.cancel();
+    _controller.dispose();
+    _hexImage?.dispose();
+    _textImage?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final Size size = Size(constraints.maxWidth, constraints.maxHeight);
+        
+        // Trigger bitmap gen if needed
+        if (_cachedSize != size) {
+          _generateBitmaps(size);
+        }
+
+        if (_hexImage == null || _textImage == null) {
+          return const SizedBox.shrink(); // Loading frame
+        }
+
+        return CustomPaint(
+          size: size,
+          foregroundPainter: _OptimizedHologramPainter(
+            offset: _holoOffset,
+            hexImage: _hexImage!,
+            textImage: _textImage!,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OptimizedHologramPainter extends CustomPainter {
+  final Offset offset;
+  final ui.Image hexImage;
+  final ui.Image textImage;
+
+  _OptimizedHologramPainter({
+    required this.offset,
+    required this.hexImage,
+    required this.textImage,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    
+    // LAYER 1: HEX PATTERN (Bitmap)
+    // Shift the bitmap based on offset * parallax
+    _paintBitmapLayer(canvas, hexImage, size, offset * 0.2, BlendMode.overlay);
+
+    // LAYER 2: TEXT PATTERN (Bitmap)
+    _paintBitmapLayer(canvas, textImage, size, offset * 0.5, BlendMode.softLight);
+
+    // LAYER 3: WAVE PATTERN (Still programmatic, cheap circles)
+    _paintWavePattern(canvas, size, offset * 0.8);
+
+    // LAYER 4: HOLO GRADIENT (Cheap linear gradient)
+    _paintHoloGradient(canvas, rect, offset * -0.5);
+    
+    // LAYER 5: SURFACE GLARE
+    _paintSurfaceGlare(canvas, rect, offset * 1.5);
+  }
+
+  void _paintBitmapLayer(Canvas canvas, ui.Image image, Size size, Offset layerOffset, BlendMode blendMode) {
+    final Paint paint = Paint()..blendMode = blendMode;
+    
+    // Center the larger texture
+    final double texW = image.width.toDouble();
+    final double texH = image.height.toDouble();
+    
+    // Current shift
+    final double dx = layerOffset.dx * size.width * 0.5;
+    final double dy = layerOffset.dy * size.height * 0.5;
+
+    // Center alignment + shift
+    final double left = (size.width - texW) / 2 + dx;
+    final double top = (size.height - texH) / 2 + dy;
+
+    canvas.drawImage(image, Offset(left, top), paint);
   }
 
   void _paintWavePattern(Canvas canvas, Size size, Offset layerOffset) {
      final Paint paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 2.0 // Slightly thicker
+      ..color = Colors.white.withValues(alpha: 0.08) // More subtle
       ..blendMode = BlendMode.screen;
 
-    // Center of wave, shifted by offset
     final Offset center = Offset(size.width / 2, size.height / 2) + 
-                          Offset(layerOffset.dx * size.width, layerOffset.dy * size.height);
+                          Offset(layerOffset.dx * size.width * 0.5, layerOffset.dy * size.height * 0.5);
 
-    // Draw concentric circles
-    final double maxRadius = math.max(size.width, size.height) * 1.5;
-    for (double r = 0; r < maxRadius; r += 20) {
+    // Fewer circles for simpler look
+    final double maxRadius = math.max(size.width, size.height) * 1.2;
+    for (double r = 0; r < maxRadius; r += 40) { // Gap 20 -> 40
       canvas.drawCircle(center, r, paint);
     }
   }
@@ -221,7 +254,6 @@ class _HologramPainter extends CustomPainter {
   void _paintSurfaceGlare(Canvas canvas, Rect rect, Offset layerOffset) {
     final Paint paint = Paint()..blendMode = BlendMode.overlay;
 
-    // Movement: Shift gradient center based on offset
     final double slideX = layerOffset.dx * rect.width; 
     final double slideY = layerOffset.dy * rect.height;
 
@@ -231,7 +263,7 @@ class _HologramPainter extends CustomPainter {
        [
          Colors.transparent,
          Colors.white.withValues(alpha: 0.0),
-         Colors.white.withValues(alpha: 0.4), // Peak glare
+         Colors.white.withValues(alpha: 0.5), // Stronger peak
          Colors.white.withValues(alpha: 0.0),
          Colors.transparent,
        ],
@@ -244,7 +276,6 @@ class _HologramPainter extends CustomPainter {
   void _paintHoloGradient(Canvas canvas, Rect rect, Offset layerOffset) {
     final Paint paint = Paint()..blendMode = BlendMode.colorDodge;
     
-    // Movement
     final double slideX = layerOffset.dx * rect.width;
     final double slideY = layerOffset.dy * rect.height;
 
@@ -253,9 +284,9 @@ class _HologramPainter extends CustomPainter {
        rect.bottomRight + Offset(slideX, slideY),
        [
           Colors.transparent,
-          const Color(0xFF00F2FF).withValues(alpha: 0.2), // Cyan
+          const Color(0xFF00F2FF).withValues(alpha: 0.2), 
           Colors.white.withValues(alpha: 0.3),
-          const Color(0xFF00F2FF).withValues(alpha: 0.2), // Cyan
+          const Color(0xFF00F2FF).withValues(alpha: 0.2),
           Colors.transparent
        ],
        [0.3, 0.45, 0.5, 0.55, 0.7],
@@ -265,7 +296,8 @@ class _HologramPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _HologramPainter oldDelegate) {
-    return oldDelegate.offset != offset;
+  bool shouldRepaint(covariant _OptimizedHologramPainter oldDelegate) {
+    return oldDelegate.offset != offset || 
+           oldDelegate.hexImage != hexImage;
   }
 }
