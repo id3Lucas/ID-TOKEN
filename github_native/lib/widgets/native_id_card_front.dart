@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:github_native/widgets/hologram_overlay.dart';
+
 
 class NativeIDCardFront extends StatelessWidget {
   final double cardWidth;
@@ -28,6 +30,10 @@ class NativeIDCardFront extends StatelessWidget {
     return Stack(
       children: [
         _buildFrontBackground(),
+        // Add hologram effect overlay
+        const Positioned.fill(
+          child: HologramOverlay(),
+        ),
         Positioned.fill(
           child: Padding(
             padding: EdgeInsets.all(orientation == Orientation.landscape ? cardWidth * 0.03 : _responsivePadding()), 

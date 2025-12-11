@@ -155,3 +155,19 @@ Despite these changes, the `flutter run` command still attempts to launch the ap
         - Modified `Vue id token version light/PresentationView.html`: Removed the `.chip` container and its SVG content.
         - Modified `Vue id token version light/styles.css`: Removed `.chip` styles, the `@keyframes wave-chip` animation, and the chip's positioning in the landscape media query.
     - **Result:** The chip icon is gone, further simplifying the card's appearance.
+
+### **Porting Hologram Effect to Native Flutter (Complete)**
+To match the web version's visual fidelity, the holographic ID card effect was ported to native Flutter code in `github_native`.
+
+1.  **Hologram Overlay Widget (`HologramOverlay`):**
+    - Created `lib/widgets/hologram_overlay.dart`.
+    - Uses `sensors_plus` to listen to `GyroscopeEvent`s.
+    - Implemented a `CustomPainter` with `BlendMode.overlay` and `BlendMode.colorDodge` to replicate the CSS mix-blend-modes.
+    - Draws two dynamic gradient layers:
+        - **Surface Glare:** A white overlay that shifts based on device tilt.
+        - **Holo Gradient:** A multi-stop cyan/white gradient that moves in opposition to the glare for depth.
+
+2.  **Integration:**
+    - Modified `lib/widgets/native_id_card_front.dart` to include `HologramOverlay` in its stack, positioned between the background and the content.
+
+3.  **Result:** The native Flutter card now reacts to physical device movement with high-performance 60fps animations.
