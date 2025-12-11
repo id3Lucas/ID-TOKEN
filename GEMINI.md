@@ -141,3 +141,10 @@ Despite these changes, the `flutter run` command still attempts to launch the ap
         - Modified `Vue id token version light/PresentationView.html` to remove the back card (`.id-card-back`), hologram elements, and simplify the script (no physics).
         - Modified `Vue id token version light/styles.css` to clean up unused styles.
     - **Result:** A static, lightweight front-facing ID card view.
+
+6.  **Remove Zoom Feature (Requested):**
+    - **Request:** User requested to also remove the zoom feature from the "light" version.
+    - **Implementation:**
+        - Modified `Vue id token version light/PresentationView.html`: Removed `#zoom-wrapper`, `#zoom-btn`, and specific zoom-related JavaScript functions (`enterFullscreen`, `updateZoomScale`, `toggleZoom`).
+        - Modified `Vue id token version light/styles.css`: Removed all styles related to the zoom wrapper, zoom button, and `.is-zoomed` state.
+    - **Result:** The "light" version is now purely the static card, centered in the viewport, with no interactive elements besides the chip animation (CSS).
