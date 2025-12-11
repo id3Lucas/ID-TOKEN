@@ -64,7 +64,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   void _setupMotionDetection() {
     developer.log('Setting up motion detection...', name: 'NativeFlipCardScreen');
     // Subscribe to gyroscope events
-    _gyroscopeSubscription = gyroscopeEventStream(samplingPeriod: SensorInterval.ui).listen((GyroscopeEvent event) {
+    _gyroscopeSubscription = gyroscopeEventStream(samplingPeriod: const Duration(microseconds: 60000)).listen((GyroscopeEvent event) {
       developer.log('Gyroscope event received.', name: 'NativeFlipCardScreen');
       _handleGyroscope(event);
     });
