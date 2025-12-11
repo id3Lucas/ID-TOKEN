@@ -227,6 +227,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     required double cardHeight,
     required double borderRadius,
     required double padding,
+    required Orientation orientation,
   }) {
     // Adjust opacity for a smooth fade during flip
     final isHidden = isFront ? _flipAnimation.value >= 0.5 : _flipAnimation.value < 0.5;
@@ -271,8 +272,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                if (isFront) _buildFrontContent(cardWidth, cardHeight),
-                                if (!isFront) _buildBackContent(cardWidth, cardHeight),
+                                if (isFront) _buildFrontContent(cardWidth, cardHeight, orientation),
+                                if (!isFront) _buildBackContent(cardWidth, cardHeight, orientation),
                               ],
                             ),                ),
               ),
@@ -335,135 +336,233 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     );
   }
 
-  Widget _buildFrontContent(double cardWidth, double cardHeight) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Top row (logo, company name, chip)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Logo Area
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildFrontContent(double cardWidth, double cardHeight, Orientation orientation) {
+    if (orientation == Orientation.portrait) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Top row (logo, company name, chip)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Logo Area
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.vpn_key_rounded, color: _primaryColor, size: cardWidth * 0.08), // Responsive icon size
+                  SizedBox(width: cardWidth * 0.02), // Responsive gap
+                  Text(
+                    'ID Token', // Extracted from HTML
+                    style: TextStyle(
+                      color: _primaryColor,
+                      fontSize: cardWidth * 0.045, // Responsive font size
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.0,
+                      shadows: [
+                        Shadow(
+                          color: _accentColor.withAlpha((255 * 0.4).round()),
+                          blurRadius: 10,
+                          offset: Offset(0, 0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              // Chip
+              SizedBox(
+                width: cardWidth * 0.1, // Responsive width
+                height: cardWidth * 0.1, // Responsive height
+                child: SvgPicture.asset(
+                  'assets/chip.svg',
+                  colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn), // Color the SVG path with primary color
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: cardHeight * 0.01), // Responsive vertical spacing
+          // Photo area
+          Container(
+            width: cardWidth * 0.35, // Responsive photo size
+            height: cardWidth * 0.35, // Responsive photo size
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _primaryColor, width: cardWidth * 0.01), // Responsive border width
+              image: const DecorationImage(
+                image: AssetImage('assets/photo.jpg'), // User-provided image name
+                fit: BoxFit.cover,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _primaryColor.withAlpha((255 * 0.4).round()),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: cardHeight * 0.015), // Responsive vertical spacing
+          // Name
+          Text(
+            'Sarah Connor', // Extracted from HTML
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _textColor,
+              fontSize: cardWidth * 0.055, // Responsive font size
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.0,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: cardHeight * 0.005), // Responsive vertical spacing
+          // Rank
+          Text(
+            'ID Document data', // Extracted from HTML
+            style: TextStyle(
+              color: _accentColor,
+              fontSize: cardWidth * 0.04, // Responsive font size
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.0,
+            ),
+          ),
+          SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+          // Data Grid
+          Container(
+            width: cardWidth * 0.9, // Make data grid responsive to card width
+            padding: EdgeInsets.all(cardWidth * 0.02), // Responsive padding
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha((255 * 0.03).round()),
+              borderRadius: BorderRadius.circular(cardWidth * 0.02), // Responsive border radius
+              border: Border(left: BorderSide(color: _accentColor, width: cardWidth * 0.008)), // Responsive border width
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Use min size for column
               children: [
-                Icon(Icons.vpn_key_rounded, color: _primaryColor, size: cardWidth * 0.08), // Responsive icon size
-                SizedBox(width: cardWidth * 0.02), // Responsive gap
-                Text(
-                  'ID Token', // Extracted from HTML
-                  style: TextStyle(
-                    color: _primaryColor,
-                    fontSize: cardWidth * 0.045, // Responsive font size
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2.0,
-                    shadows: [
-                      Shadow(
-                        color: _accentColor.withAlpha((255 * 0.4).round()),
-                        blurRadius: 10,
-                        offset: Offset(0, 0),
+                _buildDataGridRow('TYPE', 'P', cardWidth),
+                _buildDataGridRow('ISSUER', 'USA', cardWidth),
+                _buildDataGridRow('NATIONALITY', 'American', cardWidth),
+                _buildDataGridRow('GENDER', 'F', cardWidth),
+                _buildDataGridRow('BIRTH DATE', '12/2029', cardWidth),
+                _buildDataGridRow('PLACE', 'Chicago', cardWidth),
+                _buildDataGridRow('ISSUED', '2022-12-31', cardWidth),
+                _buildDataGridRow('EXPIRES', '2030-12-22', cardWidth, isAccent: true), // #expiry-date
+              ],
+            ),
+          ),
+          SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+          Text(
+            '>> 8473 9283 1102 <<', // Extracted from HTML
+            style: TextStyle(
+              color: _accentColor,
+              fontSize: cardWidth * 0.045, // Responsive font size
+              fontFamily: 'monospace', // Fallback for 'Courier New'
+              letterSpacing: 2.0,
+            ),
+          ),
+        ],
+      );
+    } else { // Landscape layout
+      return Row(
+        children: [
+          // Left side: Photo and basic info
+          Expanded(
+            flex: 2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: cardHeight * 0.35, // Responsive to card height
+                  height: cardHeight * 0.35,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _primaryColor, width: cardHeight * 0.01),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/photo.jpg'),
+                      fit: BoxFit.cover,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _primaryColor.withAlpha((255 * 0.4).round()),
+                        blurRadius: 8,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),
                 ),
+                SizedBox(height: cardHeight * 0.02),
+                Text(
+                  'Sarah Connor',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _textColor,
+                    fontSize: cardHeight * 0.05,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: cardHeight * 0.01),
+                Text(
+                  'ID Document data',
+                  style: TextStyle(
+                    color: _accentColor,
+                    fontSize: cardHeight * 0.035,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
-            // Chip
-            SizedBox(
-              width: cardWidth * 0.1, // Responsive width
-              height: cardWidth * 0.1, // Responsive height
-              child: SvgPicture.asset(
-                'assets/chip.svg',
-                colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn), // Color the SVG path with primary color
-              ),
+          ),
+          // Right side: Data grid
+          Expanded(
+            flex: 3,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('ID Token', style: TextStyle(color: _primaryColor, fontSize: cardHeight * 0.04, fontWeight: FontWeight.w700)),
+                    SizedBox(
+                      width: cardHeight * 0.1,
+                      height: cardHeight * 0.1,
+                      child: SvgPicture.asset('assets/chip.svg', colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn)),
+                    ),
+                  ],
+                ),
+                SizedBox(height: cardHeight * 0.02),
+                Container(
+                  padding: EdgeInsets.all(cardHeight * 0.02),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha((255 * 0.03).round()),
+                    borderRadius: BorderRadius.circular(cardHeight * 0.02),
+                    border: Border(left: BorderSide(color: _accentColor, width: cardHeight * 0.008)),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildDataGridRow('TYPE', 'P', cardWidth),
+                      _buildDataGridRow('ISSUER', 'USA', cardWidth),
+                      _buildDataGridRow('NATIONALITY', 'American', cardWidth),
+                      _buildDataGridRow('GENDER', 'F', cardWidth),
+                      _buildDataGridRow('BIRTH DATE', '12/2029', cardWidth),
+                      _buildDataGridRow('PLACE', 'Chicago', cardWidth),
+                    ],
+                  ),
+                ),
+                SizedBox(height: cardHeight * 0.02),
+                Text(
+                  '>> 8473 9283 1102 <<',
+                  style: TextStyle(color: _accentColor, fontSize: cardHeight * 0.04, fontFamily: 'monospace'),
+                ),
+              ],
             ),
-          ],
-        ),
-        SizedBox(height: cardHeight * 0.01), // Responsive vertical spacing
-        // Photo area
-        Container(
-          width: cardWidth * 0.35, // Responsive photo size
-          height: cardWidth * 0.35, // Responsive photo size
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: _primaryColor, width: cardWidth * 0.01), // Responsive border width
-            image: const DecorationImage(
-              image: AssetImage('assets/photo.jpg'), // User-provided image name
-              fit: BoxFit.cover,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _primaryColor.withAlpha((255 * 0.4).round()),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
-            ],
           ),
-        ),
-        SizedBox(height: cardHeight * 0.015), // Responsive vertical spacing
-        // Name
-        Text(
-          'Sarah Connor', // Extracted from HTML
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _textColor,
-            fontSize: cardWidth * 0.055, // Responsive font size
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.0,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        SizedBox(height: cardHeight * 0.005), // Responsive vertical spacing
-        // Rank
-        Text(
-          'ID Document data', // Extracted from HTML
-          style: TextStyle(
-            color: _accentColor,
-            fontSize: cardWidth * 0.04, // Responsive font size
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.0,
-          ),
-        ),
-        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
-        // Data Grid
-        Container(
-          width: cardWidth * 0.9, // Make data grid responsive to card width
-          padding: EdgeInsets.all(cardWidth * 0.02), // Responsive padding
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha((255 * 0.03).round()),
-            borderRadius: BorderRadius.circular(cardWidth * 0.02), // Responsive border radius
-            border: Border(left: BorderSide(color: _accentColor, width: cardWidth * 0.008)), // Responsive border width
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // Use min size for column
-            children: [
-              _buildDataGridRow('TYPE', 'P', cardWidth),
-              _buildDataGridRow('ISSUER', 'USA', cardWidth),
-              _buildDataGridRow('NATIONALITY', 'American', cardWidth),
-              _buildDataGridRow('GENDER', 'F', cardWidth),
-              _buildDataGridRow('BIRTH DATE', '12/2029', cardWidth),
-              _buildDataGridRow('PLACE', 'Chicago', cardWidth),
-              _buildDataGridRow('ISSUED', '2022-12-31', cardWidth),
-              _buildDataGridRow('EXPIRES', '2030-12-22', cardWidth, isAccent: true), // #expiry-date
-            ],
-          ),
-        ),
-        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
-        Text(
-          '>> 8473 9283 1102 <<', // Extracted from HTML
-          style: TextStyle(
-            color: _accentColor,
-            fontSize: cardWidth * 0.045, // Responsive font size
-            fontFamily: 'monospace', // Fallback for 'Courier New'
-            letterSpacing: 2.0,
-          ),
-        ),
-      ],
-    );
+        ],
+      );
+    }
   }
 
-  Widget _buildBackContent(double cardWidth, double cardHeight) {
+  Widget _buildBackContent(double cardWidth, double cardHeight, Orientation orientation) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
