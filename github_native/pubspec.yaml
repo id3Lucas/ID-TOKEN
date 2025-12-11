@@ -70,3 +70,6 @@ flutter:
     - assets/photo.jpg
     - assets/qr.png
     - assets/chip.svg
+
+  shaders:
+    - shaders/hologram.frag

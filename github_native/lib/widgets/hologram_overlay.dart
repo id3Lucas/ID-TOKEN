@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // For rootBundle
 import 'package:sensors_plus/sensors_plus.dart';
 
 class HologramOverlay extends StatefulWidget {
@@ -18,25 +19,47 @@ class _HologramOverlayState extends State<HologramOverlay>
   
   Offset _holoOffset = Offset.zero; 
   Offset _targetOffset = Offset.zero;
+  Offset _velocity = Offset.zero; // For spring physics
+
+  // Opacity driven by movement speed
+  double _holoOpacity = 0.0;
+  double _targetOpacity = 0.0;
 
   // Cached images for static patterns
   ui.Image? _hexImage;
   ui.Image? _textImage;
-  ui.Image? _waveImage; // New cached wave layer
+  ui.Image? _waveImage; 
   Size? _cachedSize;
+
+  // Shader
+  ui.FragmentProgram? _program;
+  double _time = 0.0;
 
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _initShader();
+
     _controller = AnimationController(
        vsync: this, 
        duration: const Duration(milliseconds: 16) 
-    )..addListener(_updateOffset);
+    )..addListener(_updateLoop);
     
     _controller.repeat();
     _startListening();
+  }
+
+  Future<void> _initShader() async {
+    try {
+      final program = await ui.FragmentProgram.fromAsset('shaders/hologram.frag');
+      setState(() {
+        _program = program;
+      });
+    } catch (e) {
+      debugPrint('Shader init failed: $e');
+    }
   }
 
   void _startListening() {
@@ -45,42 +68,61 @@ class _HologramOverlayState extends State<HologramOverlay>
       final double dx = (event.y * sensitivity).clamp(-1.0, 1.0);
       final double dy = (event.x * sensitivity).clamp(-1.0, 1.0);
       
+      final double speed = math.sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+      final double newOpacity = (speed * 2.0).clamp(0.0, 1.0);
+
       setState(() {
          _targetOffset = Offset(dx, dy);
+         _targetOpacity = newOpacity;
       });
     });
   }
   
-  void _updateOffset() {
-     const double lerpFactor = 0.1;
+  void _updateLoop() {
+     // Physics Constants
+     const double tension = 0.15;
+     const double friction = 0.92; 
+
+     _time += 0.016; // Increment time for shader iridescence
+
      setState(() {
-        _holoOffset = Offset.lerp(_holoOffset, _targetOffset, lerpFactor)!;
+        final Offset displacement = _targetOffset - _holoOffset;
+        _velocity += displacement * tension;
+        _velocity *= friction;
+        _holoOffset += _velocity;
+
+        _holoOpacity = ui.lerpDouble(_holoOpacity, _targetOpacity, 0.1) ?? 0.0;
      });
   }
 
-  /// Generates the static pattern bitmaps ONCE
   Future<void> _generateBitmaps(Size size) async {
     if (_hexImage != null && _cachedSize == size) return;
     _cachedSize = size; 
 
-    // Make texture slightly larger than screen to allow movement without gaps
-    final Size texSize = Size(size.width * 1.5, size.height * 1.5);
-    final int w = texSize.width.toInt();
-    final int h = texSize.height.toInt();
+    // Important: Shader expects textures.
+    // We render exact screen size (or scale factor?)
+    // To keep it simple, we render exact size.
+    // Parallax is handled in shader by shifting UVs, so we might need margin?
+    // Actually shader parallax shifts UV lookup, so we don't need margin if wrap is Clamp.
+    // But if we shift UV off edge, we need Repeated/Mirrored texture or transparent border.
+    // Let's rely on standard drawing, shader should handle UVs within [0,1].
+    
+    final int w = size.width.toInt();
+    final int h = size.height.toInt();
 
     // 1. Generate Hex Bitmap
     final ui.PictureRecorder hexRecorder = ui.PictureRecorder();
-    _drawHexGrid(Canvas(hexRecorder), texSize);
+    _drawHexGrid(Canvas(hexRecorder), size);
     final ui.Image hexImg = await hexRecorder.endRecording().toImage(w, h);
 
     // 2. Generate Text Bitmap
     final ui.PictureRecorder textRecorder = ui.PictureRecorder();
-    _drawTextGrid(Canvas(textRecorder), texSize);
+    _drawTextGrid(Canvas(textRecorder), size);
     final ui.Image textImg = await textRecorder.endRecording().toImage(w, h);
 
-    // 3. Generate Wave Bitmap (New)
+    // 3. Generate Wave Bitmap
     final ui.PictureRecorder waveRecorder = ui.PictureRecorder();
-    _drawWaveGrid(Canvas(waveRecorder), texSize);
+    _drawWaveGrid(Canvas(waveRecorder), size);
     final ui.Image waveImg = await waveRecorder.endRecording().toImage(w, h);
 
     if (mounted) {
@@ -93,11 +135,13 @@ class _HologramOverlayState extends State<HologramOverlay>
   }
 
   void _drawHexGrid(Canvas canvas, Size size) {
+    // We draw slightly larger grid to allow border sampling if needed, but 
+    // for now we just match _drawHexGrid logic from before but target 'size' exactly.
+    // We use WHITE color because Shader will mult by opacity/color.
     final Paint paint = Paint()
-      ..color = const Color(0xFF00F2FF).withValues(alpha: 0.15)
+      ..color = Colors.white 
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5 
-      ..blendMode = BlendMode.srcOver; 
+      ..strokeWidth = 1.5;
 
     const double width = 60.0;
     const double height = 100.0; 
@@ -125,10 +169,10 @@ class _HologramOverlayState extends State<HologramOverlay>
 
   void _drawTextGrid(Canvas canvas, Size size) {
     final TextPainter textPainter = TextPainter(
-      text: TextSpan(
+      text: const TextSpan(
         text: 'ID TOKEN',
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.15),
+          color: Colors.white, // Pure white for texture mask
           fontSize: 14,
           fontWeight: FontWeight.bold,
           fontFamily: 'Arial',
@@ -155,19 +199,16 @@ class _HologramOverlayState extends State<HologramOverlay>
     final Paint paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..blendMode = BlendMode.srcOver;
+      ..color = Colors.white;
 
-    // Based on CSS: repeating-radial-gradient... 60px 60px
     const double cellSize = 60.0;
     
-    // Draw repeating circles in a grid
     for (double y = -cellSize; y < size.height + cellSize; y += cellSize) {
       for (double x = -cellSize; x < size.width + cellSize; x += cellSize) {
         final Offset center = Offset(x + cellSize/2, y + cellSize/2);
-        // Draw ripples inside each cell
-        canvas.drawCircle(center, cellSize * 0.2, paint);
-        canvas.drawCircle(center, cellSize * 0.4, paint);
+        for (double r = 5; r < 30; r += 5) {
+           canvas.drawCircle(center, r, paint);
+        }
       }
     }
   }
@@ -192,17 +233,20 @@ class _HologramOverlayState extends State<HologramOverlay>
           _generateBitmaps(size);
         }
 
-        if (_hexImage == null || _textImage == null || _waveImage == null) {
+        if (_program == null || _hexImage == null || _textImage == null || _waveImage == null) {
           return const SizedBox.shrink(); 
         }
 
         return CustomPaint(
           size: size,
-          foregroundPainter: _OptimizedHologramPainter(
-            offset: _holoOffset,
+          foregroundPainter: _ShaderHologramPainter(
+            program: _program!,
             hexImage: _hexImage!,
             textImage: _textImage!,
             waveImage: _waveImage!,
+            offset: _holoOffset,
+            opacity: _holoOpacity,
+            time: _time,
           ),
         );
       },
@@ -210,55 +254,59 @@ class _HologramOverlayState extends State<HologramOverlay>
   }
 }
 
-class _OptimizedHologramPainter extends CustomPainter {
-  final Offset offset;
+class _ShaderHologramPainter extends CustomPainter {
+  final ui.FragmentProgram program;
   final ui.Image hexImage;
   final ui.Image textImage;
   final ui.Image waveImage;
+  final Offset offset;
+  final double opacity;
+  final double time;
 
-  _OptimizedHologramPainter({
-    required this.offset,
+  _ShaderHologramPainter({
+    required this.program,
     required this.hexImage,
     required this.textImage,
     required this.waveImage,
+    required this.offset,
+    required this.opacity,
+    required this.time,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // LAYER 1: HEX PATTERN (Background, Deepest)
-    // Parallax: 0.2
-    _paintBitmapLayer(canvas, hexImage, size, offset * 0.2, BlendMode.overlay);
+    if (opacity <= 0.01) return;
 
-    // LAYER 2: TEXT PATTERN (Mid-depth)
-    // Parallax: 0.5
-    _paintBitmapLayer(canvas, textImage, size, offset * 0.5, BlendMode.softLight);
+    final shader = program.fragmentShader();
 
-    // LAYER 3: WAVE PATTERN (Mid-depth foreground)
-    // Parallax: 0.8
-    _paintBitmapLayer(canvas, waveImage, size, offset * 0.8, BlendMode.screen);
-    
-    // REMOVED: Holo Gradient
-    // REMOVED: Surface Glare
-  }
+    // Uniforms order must match GLSL:
+    // uResolution (x, y)
+    shader.setFloat(0, size.width);
+    shader.setFloat(1, size.height);
+    // uTime
+    shader.setFloat(2, time);
+    // uTilt (x, y)
+    shader.setFloat(3, offset.dx);
+    shader.setFloat(4, offset.dy);
+    // uOpacity
+    shader.setFloat(5, opacity);
 
-  void _paintBitmapLayer(Canvas canvas, ui.Image image, Size size, Offset layerOffset, BlendMode blendMode) {
-    final Paint paint = Paint()..blendMode = blendMode;
-    
-    final double texW = image.width.toDouble();
-    final double texH = image.height.toDouble();
-    
-    final double dx = layerOffset.dx * size.width * 0.5;
-    final double dy = layerOffset.dy * size.height * 0.5;
+    // Samplers:
+    // uTexHex (0)
+    shader.setImageSampler(0, hexImage);
+    // uTexText (1)
+    shader.setImageSampler(1, textImage);
+    // uTexWave (2)
+    shader.setImageSampler(2, waveImage);
 
-    final double left = (size.width - texW) / 2 + dx;
-    final double top = (size.height - texH) / 2 + dy;
-
-    canvas.drawImage(image, Offset(left, top), paint);
+    final paint = Paint()..shader = shader;
+    canvas.drawRect(Offset.zero & size, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _OptimizedHologramPainter oldDelegate) {
+  bool shouldRepaint(covariant _ShaderHologramPainter oldDelegate) {
     return oldDelegate.offset != offset || 
-           oldDelegate.hexImage != hexImage;
+           oldDelegate.opacity != opacity ||
+           oldDelegate.time != time;
   }
 }
