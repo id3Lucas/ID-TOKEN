@@ -144,10 +144,10 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
     // Apply media query like logic for landscape orientation (max-height: 500px)
     if (screenHeight < 500 && screenWidth > screenHeight) { // Landscape mode
-      cardHeight = screenHeight * 0.85; // 85vh
-      cardWidth = cardHeight * 1.58; // 85vh * 1.58 (Original was 1.58, not 0.625)
-      borderRadius = 12.0; // 12px
-      padding = 15.0; // 15px
+      cardWidth = screenWidth * 0.75; // Take up 75% of screen width in landscape
+      cardHeight = cardWidth / 1.58; // Maintain aspect ratio based on new width
+      borderRadius = cardWidth * 0.02; // Responsive border radius
+      padding = cardWidth * 0.03; // Responsive padding
     } else { // Portrait or larger screens
       cardHeight = math.min(screenWidth * 1.36, screenHeight * 0.80); // min(136vw, 80vh)
       cardWidth = cardHeight * 0.625; // calc(var(--card-h) * 0.625)
