@@ -67,8 +67,8 @@ void main() {
     colHex.rgb *= mix(vec3(1.0), iris, 0.5); // 50% Rainbow
 
     // Layer 3: Text (Foreground)
-    // High Parallax (1.0), High Split, High Alpha
-    vec4 colText = sampleLayer(uTexText, uv, 0.8, 2.0, 1.0);
+    // High Parallax (1.0), High Split, Reduced Alpha from 1.0 -> 0.5
+    vec4 colText = sampleLayer(uTexText, uv, 0.8, 2.0, 0.5);
     
     // Add bright Iridescence to Text
     colText.rgb += iridescence(uv, 1.0) * colText.a * 0.3;

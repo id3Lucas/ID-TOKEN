@@ -79,17 +79,15 @@ class _HologramOverlayState extends State<HologramOverlay>
   }
   
   void _updateLoop() {
-     // Physics Constants
-     const double tension = 0.15;
-     const double friction = 0.92; 
-
-     _time += 0.016; // Increment time for shader iridescence
+     const double lerpFactor = 0.1; // Smooth slide
+     _time += 0.016; // Keep time increment for shader
 
      setState(() {
-        final Offset displacement = _targetOffset - _holoOffset;
-        _velocity += displacement * tension;
-        _velocity *= friction;
-        _holoOffset += _velocity;
+        // Reverted to simple Lerp (Slide) as requested
+        _holoOffset = Offset.lerp(_holoOffset, _targetOffset, lerpFactor)!;
+        
+        // Reset velocity just in case
+        _velocity = Offset.zero;
 
         _holoOpacity = ui.lerpDouble(_holoOpacity, _targetOpacity, 0.1) ?? 0.0;
      });
