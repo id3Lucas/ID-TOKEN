@@ -19,7 +19,7 @@ html {
   display: flex;
   justify-content: center;
   align-items: center;
-  perspective: 2500px;
+  /* Removed perspective as flip is gone */
 }
 body{flex-direction:column}
 /* --- VARIABLES --- */
@@ -66,17 +66,15 @@ body{flex-direction:column}
   max-width: 90vw;
   max-height: 90vh;
   position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-  cursor: pointer;
+  /* Removed transform-style and transition for flip */
   border-radius: var(--radius);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 242, 255, 0.1);
   margin: 2vh 2vw;
 }
 
 /* --- FACES --- */
-.id-card-front,
-.id-card-back {
+/* Only card front remains, but keeping generic class structure for simplicity if user re-adds back later */
+.id-card-front {
   width: 100%;
   height: 100%;
   position: absolute;
@@ -87,64 +85,17 @@ body{flex-direction:column}
   flex-direction: column;
   justify-content: space-between;
   padding: var(--pad);
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
   overflow: hidden;
   background: var(--secondary);
   border: 1px solid rgba(0, 242, 255, 0.2);
-}
-
-.id-card-front {
   z-index: 2;
   background: linear-gradient(135deg, rgba(10, 17, 40, 0.98) 0%, rgba(5, 5, 10, 1) 100%), repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0, 242, 255, 0.03) 20px), repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0, 242, 255, 0.03) 20px);
   color: var(--text-color);
 }
 
-.id-card-back {
-  transform: rotateY(180deg);
-  z-index: 1;
-  background: #080808;
-  text-align: center;
-}
+/* Removed .id-card-back */
+/* Removed .surface-glare, .hologram-container, .holo-layer, .holo-gradient */
 
-/* --- LAYERS --- */
-.surface-glare {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.4) 50%, transparent 60%);
-  pointer-events: none;
-  mix-blend-mode: overlay;
-  z-index: 100;
-  opacity: 0;
-}
-
-.hologram-container {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius);
-  pointer-events: none;
-  z-index: 1;
-  overflow: hidden;
-  /* mix-blend-mode: color-dodge; */ /* Removed by Gemini for performance */
-}
-
-.holo-layer {
-  position: absolute;
-  inset: -50%;
-  opacity: 0;
-  /* transition: transform 0.15s ease-out, opacity 0.15s ease-out; */ /* Removed by Gemini */
-}
-
-/* Removed pattern-hex, pattern-text, pattern-wave rules by Gemini for hologram simplification */
-
-.holo-gradient {
-  background: linear-gradient(115deg, transparent 30%, rgba(0, 242, 255, 0.1) 45%, rgba(255, 255, 255, 0.3) 50%, rgba(0, 242, 255, 0.1) 55%, transparent 70%);
-  /* mix-blend-mode: screen; */ /* Removed by Gemini for performance */
-  background-size: 200% 200%;
-}
 
 /* --- CONTENT STRUCTURE --- */
 
@@ -293,52 +244,6 @@ body{flex-direction:column}
   color: var(--accent);
 }
 
-/* QR & BACK */
-.qr-section {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  text-align: center;
-  margin: auto;
-  padding: 0;
-  flex-direction: column;
-  justify-content: center;
-  height: 100%;
-}
-
-.qr-code {
-  width: 100%;
-  max-width: 70%;
-  height: auto;
-  background: #fff;
-  padding: 5px;
-  pointer-events: none;
-}
-
-.disclaimer {
-  font-size: clamp(0.8em, 2vmin, 15px);
-  color: white;
-  line-height: 1.4;
-}
-
-.entreprise-name {
-  font-size: clamp(1em, 2vmin, 15px);
-  color: var(--primary);
-  margin-top: auto;
-  opacity: 1;
-}
-
-.bioseal-title {
-  font-size: 1.2em;
-  color: var(--primary);
-  margin-top: auto;
-}
-
-.standards {
-  font-size: 1.2em;
-  color: var(--primary);
-  margin-top: auto;
-}
 
 .chip {
   pointer-events: auto;
@@ -523,162 +428,10 @@ body{flex-direction:column}
 
   }
 
-
-  /* --- BACK FACE --- */
-  .id-card-back {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-  }
-
-  .qr-section {
-    flex-direction: row;
-    width: 100%;
-    height: 100%;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .qr-code {
-    flex: 0 0 50%;
-    max-width: 40%;
-    height: auto;
-    margin: 0 auto;
-    padding-right: 10px;
-  }
-
-  .disclaimer {
-    flex: 0 0 50%;
-    text-align: left;
-    padding-left: 10px;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: clamp(0.8em, 2vmin, 12px);
-  }
-
-  .id-card-back>div:last-child {
-    width: 100%;
-    display: block;
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-  }
 }
 
-/* --- UI OVERLAYS --- */
-.glass-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  z-index: 9999;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  animation: fadeIn 0.5s forwards;
-}
+/* --- UI OVERLAYS (Removed Glass Permissions overlay) --- */
 
-@keyframes fadeIn {
-  to {
-    opacity: 1;
-  }
-}
-
-.glass-content {
-  background: rgba(20, 30, 50, 0.4);
-  border: 1px solid rgba(0, 242, 255, 0.2);
-  box-shadow: 0 0 40px rgba(0, 242, 255, 0.1);
-  border-radius: 20px;
-  padding: 40px 30px;
-  text-align: center;
-  max-width: 85%;
-  width: 350px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.sensor-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 2px solid var(--primary);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 0 15px var(--primary);
-  animation: pulse-ring 2s infinite;
-}
-
-@keyframes pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0 rgba(0, 208, 132, 0.7);
-  }
-
-  70% {
-    box-shadow: 0 0 0 10px rgba(0, 208, 132, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(0, 208, 132, 0);
-  }
-}
-
-.glass-title {
-  color: #fff;
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  margin: 0;
-}
-
-.glass-desc {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.glass-btn {
-  width: 100%;
-  padding: 15px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.btn-accept {
-  background: var(--primary);
-  color: #000;
-  border: none;
-  box-shadow: 0 5px 15px rgba(0, 208, 132, 0.3);
-}
-
-.btn-accept:active {
-  transform: scale(0.98);
-}
-
-.btn-deny {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 5px;
-}
-
-.btn-deny:active {
-  background: rgba(255, 255, 255, 0.1);
-}
 .button-div {
   width:100vw;display: flex;
   justify-content: end;
@@ -731,61 +484,4 @@ body.is-zoomed #zoom-wrapper {
   z-index: 9995;
   position: relative;
   transform-origin: center center;
-}
-
-/* --- FIX FOR OVERLAY IN LANDSCAPE (Compact Mode) --- */
-@media (max-height: 500px) and (orientation: landscape) {
-  .glass-content {
-    /* Switch to Grid Layout */
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    /* Two equal columns */
-    width: 480px;
-    /* Make it wider */
-    max-width: 95%;
-    padding: 15px 20px;
-    /* Reduce padding significantly */
-    gap: 8px;
-    /* Tighter gap */
-  }
-
-  /* 1. Make Icon, Title, Description span the full width */
-  .sensor-icon,
-  .glass-title,
-  .glass-desc {
-    grid-column: span 2;
-    margin: 0 auto;
-  }
-
-  /* 2. Shrink the Icon */
-  .sensor-icon {
-    width: 35px;
-    height: 35px;
-  }
-
-  /* 3. Compact Text */
-  .glass-title {
-    font-size: 1rem;
-  }
-
-  .glass-desc {
-    font-size: 0.8rem;
-    line-height: 1.2;
-    margin: 0;
-  }
-
-  /* 4. Place Buttons Side-by-Side */
-  .glass-btn {
-    width: 100%;
-    /* Fill their grid column */
-    padding: 10px 5px;
-    /* Smaller button padding */
-    font-size: 0.8rem;
-    height: auto;
-  }
-
-  /* Remove extra margin from the second button */
-  .btn-deny {
-    margin-top: 0;
-  }
 }
