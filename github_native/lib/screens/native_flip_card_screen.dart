@@ -77,6 +77,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   void _handleAccelerometer(AccelerometerEvent event) {
+    developer.log('Accelerometer: x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
+
     // Simulate DeviceOrientationEvent.beta and gamma using accelerometer data
     // This is a simplification. Actual DeviceOrientationEvent uses different sensors.
     // However, for tilt-based parallax, accelerometer is a good approximation.
@@ -93,6 +95,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     // Clamp values to -1 to 1 range
     rawGamma = math.max(-1.0, math.min(1.0, rawGamma));
     rawBeta = math.max(-1.0, math.min(1.0, rawBeta));
+
+    developer.log('rawGamma: ${rawGamma.toStringAsFixed(3)}, rawBeta: ${rawBeta.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
 
     // The JS `handleOrientation` uses gamma and beta directly.
     // Flutter's orientation (portrait/landscape) can be obtained via MediaQuery
@@ -131,6 +135,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
       rawDy = -g;
     }
 
+    developer.log('rawDx: ${rawDx.toStringAsFixed(3)}, rawDy: ${rawDy.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
 
     // Filter to smooth out jitter
     _filteredDx = _filteredDx * (1 - _gyroFilterFactor) + rawDx * _gyroFilterFactor;
