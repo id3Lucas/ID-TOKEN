@@ -3,6 +3,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 import 'dart:async'; // Import for StreamSubscription
 import 'package:flutter_svg/flutter_svg.dart'; // Import for SVG support
+import 'dart:developer' as developer;
 
 class NativeFlipCardScreen extends StatefulWidget {
   final String fileName; // Optional: to display file name in AppBar
@@ -36,8 +37,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   double _targetHoloOpacity = 0.0;
 
   final double _gyroFilterFactor = 0.1;
-  final double _movementSensitivity = 5.0; // Adjusted from 5.0 to 1.0 in JS, so let's try 5.0
-  final double _speedThreshold = 0.15;
+  final double _movementSensitivity = 1.0; // Adjusted from 5.0 to 1.0 to match JS
+  final double _speedThreshold = 0.05; // Lowered from 0.15
   final double _holoIntensity = 0.5;
 
   late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
@@ -68,6 +69,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   void _handleGyroscope(GyroscopeEvent event) {
+    developer.log('Gyro: x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
+
     // Convert gyro data to movement in X/Y plane for hologram effect
     // event.y for rotation around X (pitch) affects Dy (vertical movement of holo)
     // event.x for rotation around Y (roll) affects Dx (horizontal movement of holo)
@@ -91,6 +94,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     final double diffY = (normalizedDy - _currentDy).abs();
     double movementSpeed = diffX + diffY;
 
+    developer.log('MovementSpeed: ${movementSpeed.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
+
     // Adjust movementSpeed based on threshold for opacity
     if (movementSpeed < _speedThreshold) {
       movementSpeed = 0;
@@ -101,6 +106,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     _targetDx = normalizedDx;
     _targetDy = normalizedDy;
     _targetHoloOpacity = math.min(1.0, movementSpeed * _holoIntensity); // Use _holoIntensity here
+
+    developer.log('TargetHoloOpacity: ${_targetHoloOpacity.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
 
     _updateHologramAnimation();
   }
