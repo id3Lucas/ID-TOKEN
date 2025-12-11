@@ -167,49 +167,55 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
         backgroundColor: _secondaryColor,
         foregroundColor: _textColor,
       ),
-      body: Container(
-        color: _darkGreyColor, // Match body background from CSS
-        child: Center(
-          child: GestureDetector(
-            onTap: _handleFlip,
-            child: AnimatedBuilder(
-              animation: _flipAnimation,
-              builder: (context, child) {
-                final angle = _flipAnimation.value * math.pi; // 0 to pi
-                final transform = Matrix4.identity()
-                  ..setEntry(3, 2, 0.001) // Perspective
-                  ..rotateY(angle);
+      body: OrientationBuilder(
+        builder: (context, orientation) {
+          return Container(
+            color: _darkGreyColor, // Match body background from CSS
+            child: Center(
+              child: GestureDetector(
+                onTap: _handleFlip,
+                child: AnimatedBuilder(
+                  animation: _flipAnimation,
+                  builder: (context, child) {
+                    final angle = _flipAnimation.value * math.pi; // 0 to pi
+                    final transform = Matrix4.identity()
+                      ..setEntry(3, 2, 0.001) // Perspective
+                      ..rotateY(angle);
 
-                return Transform(
-                  transform: transform,
-                  alignment: Alignment.center,
-                  child: Stack(
-                    children: [
-                      // Back of the card
-                      _buildCardFace(
-                        isFront: false,
-                        // Apply inverse transform to back face to keep text readable
-                        transform: Matrix4.identity()..rotateY(math.pi),
-                        cardWidth: cardWidth,
-                        cardHeight: cardHeight,
-                        borderRadius: borderRadius,
-                        padding: padding,
+                    return Transform(
+                      transform: transform,
+                      alignment: Alignment.center,
+                      child: Stack(
+                        children: [
+                          // Back of the card
+                          _buildCardFace(
+                            isFront: false,
+                            // Apply inverse transform to back face to keep text readable
+                            transform: Matrix4.identity()..rotateY(math.pi),
+                            cardWidth: cardWidth,
+                            cardHeight: cardHeight,
+                            borderRadius: borderRadius,
+                            padding: padding,
+                            orientation: orientation,
+                          ),
+                          // Front of the card
+                          _buildCardFace(
+                            isFront: true,
+                            cardWidth: cardWidth,
+                            cardHeight: cardHeight,
+                            borderRadius: borderRadius,
+                            padding: padding,
+                            orientation: orientation,
+                          ),
+                        ],
                       ),
-                      // Front of the card
-                      _buildCardFace(
-                        isFront: true,
-                        cardWidth: cardWidth,
-                        cardHeight: cardHeight,
-                        borderRadius: borderRadius,
-                        padding: padding,
-                      ),
-                    ],
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
