@@ -97,28 +97,134 @@ class _HologramPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Rect rect = Offset.zero & size;
     
-    // We'll draw two layers:
-    // 1. Surface Glare (Overlay) - white shimmer
-    // 2. Rainbow/Holo Gradient (ColorDodge/Screen) - colors
+    // LAYER 1: HEX PATTERN (Background, slow movement)
+    // Parallax factor: 0.2 (Moves slightly)
+    _paintHexPattern(canvas, size, offset * 0.2);
 
-    _paintSurfaceGlare(canvas, rect);
-    _paintHoloGradient(canvas, rect);
+    // LAYER 2: TEXT PATTERN (Mid-depth)
+    // Parallax factor: 0.5
+    _paintTextPattern(canvas, size, offset * 0.5);
+
+    // LAYER 3: WAVE PATTERN (Mid-depth foreground)
+    // Parallax factor: 0.8
+    _paintWavePattern(canvas, size, offset * 0.8);
+
+    // LAYER 4: HOLO GRADIENT (Foreground effect)
+    // Parallax factor: -0.5 (Opposite movement for depth)
+    _paintHoloGradient(canvas, rect, offset * -0.5);
+    
+    // LAYER 5: SURFACE GLARE (Topmost glass effect)
+    // Parallax factor: 1.2 (Moves with tilt)
+    _paintSurfaceGlare(canvas, rect, offset * 1.2);
   }
 
-  void _paintSurfaceGlare(Canvas canvas, Rect rect) {
+  void _paintHexPattern(Canvas canvas, Size size, Offset layerOffset) {
+    final Paint paint = Paint()
+      ..color = const Color(0xFF00F2FF).withValues(alpha: 0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..blendMode = BlendMode.overlay;
+
+    final double width = 40.0;
+    final double height = 70.0;
+    // Shift grid by offset
+    final double dx = layerOffset.dx * size.width;
+    final double dy = layerOffset.dy * size.height;
+
+    canvas.save();
+    canvas.translate(dx, dy);
+
+    // Draw grid covering the whole area + buffer for movement
+    // Simple tiling logic
+    for (double y = -height; y < size.height + height; y += height * 0.75) {
+      for (double x = -width; x < size.width + width; x += width) {
+        // Offset every other row
+        double xPos = x;
+        if ((y ~/ (height * 0.75)) % 2 != 0) {
+          xPos += width * 0.5;
+        }
+        
+        // Hexagon Path
+        final Path path = Path();
+        path.moveTo(xPos + width * 0.5, y); // Top Center
+        path.lineTo(xPos + width, y + height * 0.25);
+        path.lineTo(xPos + width, y + height * 0.75);
+        path.lineTo(xPos + width * 0.5, y + height); // Bottom Center
+        path.lineTo(xPos, y + height * 0.75);
+        path.lineTo(xPos, y + height * 0.25);
+        path.close();
+        
+        canvas.drawPath(path, paint);
+      }
+    }
+    canvas.restore();
+  }
+
+  void _paintTextPattern(Canvas canvas, Size size, Offset layerOffset) {
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: 'ID TOKEN',
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.1),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Arial',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    final double spacing = 80.0;
+    // Shift by offset
+    final double dx = layerOffset.dx * size.width;
+    final double dy = layerOffset.dy * size.height;
+
+    canvas.save();
+    canvas.translate(dx, dy);
+    
+    // Rotate entire layer -45 deg around center
+    // Or tile rotated text. CSS rotates the text itself.
+    // Let's rotate individual text items for better tiling control
+    
+    // Grid loop
+    for (double y = -spacing; y < size.height + spacing; y += spacing) {
+      for (double x = -spacing; x < size.width + spacing; x += spacing) {
+         canvas.save();
+         canvas.translate(x, y);
+         canvas.rotate(-math.pi / 4); // -45 degrees
+         textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+         canvas.restore();
+      }
+    }
+    canvas.restore();
+  }
+
+  void _paintWavePattern(Canvas canvas, Size size, Offset layerOffset) {
+     final Paint paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..blendMode = BlendMode.screen;
+
+    // Center of wave, shifted by offset
+    final Offset center = Offset(size.width / 2, size.height / 2) + 
+                          Offset(layerOffset.dx * size.width, layerOffset.dy * size.height);
+
+    // Draw concentric circles
+    final double maxRadius = math.max(size.width, size.height) * 1.5;
+    for (double r = 0; r < maxRadius; r += 20) {
+      canvas.drawCircle(center, r, paint);
+    }
+  }
+
+  void _paintSurfaceGlare(Canvas canvas, Rect rect, Offset layerOffset) {
     final Paint paint = Paint()..blendMode = BlendMode.overlay;
 
     // Movement: Shift gradient center based on offset
-    // Offset is roughly -1 to 1.
-    // We want the band to move across the card.
-    
-    final double slideX = offset.dx * rect.width; 
-    final double slideY = offset.dy * rect.height;
+    final double slideX = layerOffset.dx * rect.width; 
+    final double slideY = layerOffset.dy * rect.height;
 
-    // Create a gradient that is larger than the card and shifts
-    // Angle 115 degrees ~ 2rad
-    // We simulate the angle by start/end points.
-    
     paint.shader = ui.Gradient.linear(
        rect.topLeft + Offset(slideX - rect.width, slideY - rect.height),
        rect.bottomRight + Offset(slideX + rect.width, slideY + rect.height),
@@ -135,12 +241,12 @@ class _HologramPainter extends CustomPainter {
     canvas.drawRect(rect, paint);
   }
 
-  void _paintHoloGradient(Canvas canvas, Rect rect) {
+  void _paintHoloGradient(Canvas canvas, Rect rect, Offset layerOffset) {
     final Paint paint = Paint()..blendMode = BlendMode.colorDodge;
     
-    // Opposite movement for depth effect
-    final double slideX = -offset.dx * rect.width * 0.5;
-    final double slideY = -offset.dy * rect.height * 0.5;
+    // Movement
+    final double slideX = layerOffset.dx * rect.width;
+    final double slideY = layerOffset.dy * rect.height;
 
     paint.shader = ui.Gradient.linear(
        rect.topLeft + Offset(slideX, slideY),
