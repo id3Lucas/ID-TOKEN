@@ -26,6 +26,7 @@ class _RepoListScreenState extends State<RepoListScreen> {
   void _signOut() async {
     // developer.log('RepoListScreen: Signing out...', name: 'RepoListScreen'); // Log removed
     await _authService.signOut();
+    if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/login');
   }
 

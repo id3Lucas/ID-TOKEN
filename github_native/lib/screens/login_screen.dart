@@ -27,9 +27,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _authService.saveToken(_tokenController.text);
+      if (!mounted) return;
       // Navigate to the repo list screen on successful save
       Navigator.of(context).pushReplacementNamed('/repo_list');
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to save token: $e')),
       );

@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 import 'package:webview_flutter_android/webview_flutter_android.dart'; // Import Android specific WebView
-import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart'; // Required for PlatformWebViewControllerCreationParams
 // Removed import 'package:shimmer/shimmer.dart';
 
 class WebViewScreen extends StatefulWidget {
@@ -74,7 +72,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
         allMatches.sort((a, b) => b.start.compareTo(a.start));
 
         for (final match in allMatches) {
-          final originalLinkTag = match.group(0)!;
           final cssRelativePath = match.group(1)!;
           
           final cssUri = Uri.parse(directoryBaseUrl).resolve(cssRelativePath);

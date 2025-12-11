@@ -62,7 +62,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
   void _setupMotionDetection() {
     // Subscribe to gyroscope events
-    _gyroscopeSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
+    _gyroscopeSubscription = gyroscopeEventStream().listen((GyroscopeEvent event) {
       _handleGyroscope(event);
     });
   }
@@ -229,16 +229,16 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
           decoration: BoxDecoration(
             color: isFront ? _secondaryColor : const Color(0xFF080808), // Front: var(--secondary), Back: #080808
             borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(color: _accentColor.withOpacity(0.2), width: 1.0), // 1px solid rgba(0, 242, 255, 0.2)
+            border: Border.all(color: _accentColor.withAlpha((255 * 0.2).round()), width: 1.0), // 1px solid rgba(0, 242, 255, 0.2)
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5), // 0 10px 20px rgba(0, 0, 0, 0.5)
+                color: Colors.black.withAlpha((255 * 0.5).round()), // 0 10px 20px rgba(0, 0, 0, 0.5)
                 blurRadius: 10,
                 spreadRadius: 0,
                 offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: _accentColor.withOpacity(0.1), // 0 0 15px rgba(0, 242, 255, 0.1)
+                color: _accentColor.withAlpha((255 * 0.1).round()), // 0 0 15px rgba(0, 242, 255, 0.1)
                 blurRadius: 15,
                 spreadRadius: 0,
                 offset: const Offset(0, 0),
@@ -255,14 +255,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               Positioned.fill(
                 child: Padding(
                   padding: EdgeInsets.all(padding),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (isFront) _buildFrontContent(),
-                      if (!isFront) _buildBackContent(),
-                    ],
-                  ),
-                ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                if (isFront) _buildFrontContent(cardWidth, cardHeight),
+                                if (!isFront) _buildBackContent(cardWidth, cardHeight),
+                              ],
+                            ),                ),
               ),
             ],
           ),
@@ -277,7 +276,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        _secondaryColor.withOpacity(0.98), // rgba(10, 17, 40, 0.98)
+        _secondaryColor.withAlpha((255 * 0.98).round()), // rgba(10, 17, 40, 0.98)
         _darkGreyColor, // rgba(5, 5, 10, 1)
       ],
       stops: const [0.0, 1.0],
@@ -302,186 +301,20 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   // Actual content widgets
-  Widget _buildFrontContent() {
-    return Expanded(
-      child: Column(
+  // Helper to build data grid rows
+  Widget _buildDataGridRow(String label, String value, double cardWidth, {bool isAccent = false}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: cardWidth * 0.008), // Responsive vertical padding
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Top row (logo, company name, chip)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Logo Area
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(Icons.vpn_key_rounded, color: _primaryColor, size: 30), // Example icon for logo
-                  const SizedBox(width: 8), // gap: 10px
-                  Text(
-                    'ID Token', // Extracted from HTML
-                    style: TextStyle(
-                      color: _primaryColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.0,
-                      shadows: [
-                        Shadow(
-                          color: _accentColor.withOpacity(0.4),
-                          blurRadius: 10,
-                          offset: Offset(0, 0),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              // Chip
-              SizedBox(
-                width: 40, // width based on CSS example
-                height: 40, // height based on CSS example
-                child: SvgPicture.asset(
-                  'assets/chip.svg',
-                  colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn), // Color the SVG path with primary color
-                ),
-              ),
-            ],
-          ),
-          // Photo area
-          Builder(
-            builder: (context) {
-              final cardWidth = MediaQuery.of(context).size.width; // Need cardWidth here
-              final photoSize = math.max(100.0, math.min(cardWidth * 0.3, 150.0)); // clamp(100px, 30vw, 150px)
-              return Container(
-                width: photoSize,
-                height: photoSize,
-                margin: const EdgeInsets.only(bottom: 4), // margin: auto auto 10px auto, reduced
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _primaryColor, width: 4), // padding 4px + 2px border (simulated)
-                  image: const DecorationImage(
-                    image: AssetImage('assets/photo.jpg'), // User-provided image name
-                    fit: BoxFit.cover,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _primaryColor.withOpacity(0.4),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-              );
-            }
-          ),
-          // Name
-          Flexible( // Make Flexible
-            child: Container(
-              constraints: BoxConstraints(maxHeight: 2.5 * 22), // Approx 2.5em, assuming base font size of 22 for clamp max
-              child: Text(
-                'Sarah Connor', // Extracted from HTML
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _textColor,
-                  fontSize: 22, // clamp(10px, 5vmin, 22px)
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-          // Rank
+          Text(label, style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.035)), // Responsive font size
           Text(
-            'ID Document data', // Extracted from HTML
+            value,
             style: TextStyle(
-              color: _accentColor,
-              fontSize: 16, // clamp(10px, 2.5vmin, 16px)
+              color: isAccent ? _accentColor : Colors.white,
+              fontSize: cardWidth * 0.035, // Responsive font size
               fontWeight: FontWeight.w600,
-              letterSpacing: 1.0,
-            ),
-          ),
-          const SizedBox(height: 10), // Reduced from 20
-          // Data Grid
-          Flexible( // Make Flexible
-            child: Container(
-              padding: const EdgeInsets.all(8), // Reduced from 10
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(8),
-                border: Border(left: BorderSide(color: _accentColor, width: 3)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('TYPE', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('P', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('ISSUER', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('USA', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('NATIONALITY', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('American', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('GENDER', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('F', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('BIRTH DATE', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('12/2029', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('PLACE', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('Chicago', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('ISSUED', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('2022-12-31', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)), // data-val
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('EXPIRES', style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 14)), // data-label
-                      Text('2030-12-22', style: TextStyle(color: _accentColor, fontSize: 14, fontWeight: FontWeight.w600)), // data-val #expiry-date
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '>> 8473 9283 1102 <<', // Extracted from HTML
-            style: TextStyle(
-              color: _accentColor,
-              fontSize: 18,
-              fontFamily: 'monospace', // Fallback for 'Courier New'
-              letterSpacing: 2.0,
             ),
           ),
         ],
@@ -489,81 +322,207 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     );
   }
 
-  Widget _buildBackContent() {
-    return Expanded( // Use Expanded to fill available space in Column
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // QR Code
-          Container(
-            width: 150, height: 150,
-            padding: const EdgeInsets.all(5), // padding 5px in CSS
-            color: Colors.white, // background #fff
-            child: Image.asset('assets/qr.png', fit: BoxFit.contain), // User-provided image name
-          ),
-          const SizedBox(height: 10), // Reduced from 20
-          // Disclaimer Text
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Column(
+  Widget _buildFrontContent(double cardWidth, double cardHeight) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Top row (logo, company name, chip)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Logo Area
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                Icon(Icons.vpn_key_rounded, color: _primaryColor, size: cardWidth * 0.08), // Responsive icon size
+                SizedBox(width: cardWidth * 0.02), // Responsive gap
                 Text(
-                  'BIOSEAL CODE', // Extracted from HTML
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'BioSeal Code provides secure multi-factor authentication for verifying identities and authenticating documents through its innovative integration of Visible Digital Seal\'s technology (VDS).', // Extracted from HTML
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 12),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  'It complies with ISO 22385 & 22376 standards.', // Extracted from HTML
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: _textColor.withOpacity(0.7), fontSize: 12),
+                  'ID Token', // Extracted from HTML
+                  style: TextStyle(
+                    color: _primaryColor,
+                    fontSize: cardWidth * 0.045, // Responsive font size
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.0,
+                    shadows: [
+                      Shadow(
+                        color: _accentColor.withAlpha((255 * 0.4).round()),
+                        blurRadius: 10,
+                        offset: Offset(0, 0),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
+            // Chip
+            SizedBox(
+              width: cardWidth * 0.1, // Responsive width
+              height: cardWidth * 0.1, // Responsive height
+              child: SvgPicture.asset(
+                'assets/chip.svg',
+                colorFilter: ColorFilter.mode(_primaryColor, BlendMode.srcIn), // Color the SVG path with primary color
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: cardHeight * 0.01), // Responsive vertical spacing
+        // Photo area
+        Container(
+          width: cardWidth * 0.35, // Responsive photo size
+          height: cardWidth * 0.35, // Responsive photo size
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: _primaryColor, width: cardWidth * 0.01), // Responsive border width
+            image: const DecorationImage(
+              image: AssetImage('assets/photo.jpg'), // User-provided image name
+              fit: BoxFit.cover,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _primaryColor.withAlpha((255 * 0.4).round()),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
           ),
-          const SizedBox(height: 10), // Reduced from 20
-          // Bottom Text
-          Text(
-            'ID3 TECHNOLOGIES', // Extracted from HTML
-            style: TextStyle(color: _primaryColor, fontSize: 14),
+        ),
+        SizedBox(height: cardHeight * 0.015), // Responsive vertical spacing
+        // Name
+        Text(
+          'Sarah Connor', // Extracted from HTML
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _textColor,
+            fontSize: cardWidth * 0.055, // Responsive font size
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
           ),
-        ],
-      ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        SizedBox(height: cardHeight * 0.005), // Responsive vertical spacing
+        // Rank
+        Text(
+          'ID Document data', // Extracted from HTML
+          style: TextStyle(
+            color: _accentColor,
+            fontSize: cardWidth * 0.04, // Responsive font size
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+          ),
+        ),
+        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+        // Data Grid
+        Container(
+          width: cardWidth * 0.9, // Make data grid responsive to card width
+          padding: EdgeInsets.all(cardWidth * 0.02), // Responsive padding
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha((255 * 0.03).round()),
+            borderRadius: BorderRadius.circular(cardWidth * 0.02), // Responsive border radius
+            border: Border(left: BorderSide(color: _accentColor, width: cardWidth * 0.008)), // Responsive border width
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Use min size for column
+            children: [
+              _buildDataGridRow('TYPE', 'P', cardWidth),
+              _buildDataGridRow('ISSUER', 'USA', cardWidth),
+              _buildDataGridRow('NATIONALITY', 'American', cardWidth),
+              _buildDataGridRow('GENDER', 'F', cardWidth),
+              _buildDataGridRow('BIRTH DATE', '12/2029', cardWidth),
+              _buildDataGridRow('PLACE', 'Chicago', cardWidth),
+              _buildDataGridRow('ISSUED', '2022-12-31', cardWidth),
+              _buildDataGridRow('EXPIRES', '2030-12-22', cardWidth, isAccent: true), // #expiry-date
+            ],
+          ),
+        ),
+        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+        Text(
+          '>> 8473 9283 1102 <<', // Extracted from HTML
+          style: TextStyle(
+            color: _accentColor,
+            fontSize: cardWidth * 0.045, // Responsive font size
+            fontFamily: 'monospace', // Fallback for 'Courier New'
+            letterSpacing: 2.0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBackContent(double cardWidth, double cardHeight) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // QR Code
+        Container(
+          width: cardWidth * 0.4, // Responsive width
+          height: cardWidth * 0.4, // Responsive height
+          padding: EdgeInsets.all(cardWidth * 0.015), // Responsive padding
+          color: Colors.white, // background #fff
+          child: Image.asset('assets/qr.png', fit: BoxFit.contain), // User-provided image name
+        ),
+        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+        // Disclaimer Text
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: cardWidth * 0.03), // Responsive horizontal padding
+          child: Column(
+            children: [
+              Text(
+                'BIOSEAL CODE', // Extracted from HTML
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _primaryColor, fontSize: cardWidth * 0.045, fontWeight: FontWeight.bold), // Responsive font size
+              ),
+              SizedBox(height: cardHeight * 0.01),
+                              Text(
+                                'BioSeal Code provides secure multi-factor authentication for verifying identities and authenticating documents through its innovative integration of Visible Digital Seal\'s technology (VDS).', // Extracted from HTML
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.03), // Responsive font size
+                              ),
+                              SizedBox(height: cardHeight * 0.005),
+                              Text(
+                                'It complies with ISO 22385 & 22376 standards.', // Extracted from HTML
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: _textColor.withAlpha((255 * 0.7).round()), fontSize: cardWidth * 0.03), // Responsive font size
+                              ),            ],
+          ),
+        ),
+        SizedBox(height: cardHeight * 0.02), // Responsive vertical spacing
+        // Bottom Text
+        Text(
+          'ID3 TECHNOLOGIES', // Extracted from HTML
+          style: TextStyle(color: _primaryColor, fontSize: cardWidth * 0.035), // Responsive font size
+        ),
+      ],
     );
   }
 
   Widget _buildHologramEffect(double borderRadius) {
     // Implementing multiple hologram layers as per the HTML/CSS
-    final double holoShiftX = _currentDx * 15.0; // depth * 15 (increased sensitivity for more visual effect)
-    final double holoShiftY = _currentDy * 15.0;
+    final double holoShiftX = _currentDx * 20.0; // depth * 20 (increased sensitivity)
+    final double holoShiftY = _currentDy * 20.0;
 
-    // Holo-gradient from CSS
+    // Holo-gradient from CSS - slightly more vibrant accent
     final holoGradient = LinearGradient(
       begin: Alignment.topLeft, // Corresponds to 115deg roughly
       end: Alignment.bottomRight,
       colors: [
         Colors.transparent,
-        _accentColor.withOpacity(0.1), // rgba(0, 242, 255, 0.1)
-        Colors.white.withOpacity(0.3), // rgba(255, 255, 255, 0.3)
-        _accentColor.withOpacity(0.1),
+        _accentColor.withAlpha((255 * 0.15).round()), // Slightly increased opacity
+        Colors.white.withAlpha((255 * 0.35).round()), // Slightly increased opacity
+        _accentColor.withAlpha((255 * 0.15).round()), // Slightly increased opacity
         Colors.transparent,
       ],
       stops: const [0.30, 0.45, 0.50, 0.55, 0.70],
     );
 
-    // Surface Glare gradient from CSS
+    // Surface Glare gradient from CSS - slightly more prominent
     final surfaceGlareGradient = LinearGradient(
       begin: Alignment.topLeft, // Corresponds to 115deg
       end: Alignment.bottomRight,
       colors: [
         Colors.transparent,
-        Colors.white.withOpacity(0.4), // rgba(255, 255, 255, 0.4)
+        Colors.white.withAlpha((255 * 0.5).round()), // Slightly increased opacity
         Colors.transparent,
       ],
       stops: const [0.4, 0.5, 0.6],
@@ -579,13 +538,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               // Layer 1: Base Hologram Gradient
               // Simulate background-size: 200% 200% by scaling up the container
               Transform.translate(
-                offset: Offset(-holoShiftX * 0.7, -holoShiftY * 0.7), // Less depth
+                offset: Offset(-holoShiftX * 0.8, -holoShiftY * 0.8), // Increased depth
                 child: Transform.scale(
                   scale: 2.0, // Simulate background-size: 200%
                   child: Container(
                     decoration: BoxDecoration(gradient: holoGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withOpacity(0.1), BlendMode.screen), // mix-blend-mode: screen
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.screen), // Increased opacity
                       child: Container(color: Colors.transparent),
                     ),
                   ),
@@ -593,13 +552,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Layer 2: Deeper Parallax
               Transform.translate(
-                offset: Offset(-holoShiftX * 1.0, -holoShiftY * 1.0), // More depth
+                offset: Offset(-holoShiftX * 1.1, -holoShiftY * 1.1), // Increased depth
                 child: Transform.scale(
                   scale: 2.0, // Simulate background-size: 200%
                   child: Container(
                     decoration: BoxDecoration(gradient: holoGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withOpacity(0.15), BlendMode.screen), // mix-blend-mode: screen
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.2).round()), BlendMode.screen), // Increased opacity
                       child: Container(color: Colors.transparent),
                     ),
                   ),
@@ -607,13 +566,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Layer 3: Even Deeper Parallax
                Transform.translate(
-                offset: Offset(-holoShiftX * 1.3, -holoShiftY * 1.3), // Even more depth
+                offset: Offset(-holoShiftX * 1.4, -holoShiftY * 1.4), // Increased depth
                 child: Transform.scale(
                   scale: 2.0, // Simulate background-size: 200%
                   child: Container(
                     decoration: BoxDecoration(gradient: holoGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withOpacity(0.2), BlendMode.screen), // mix-blend-mode: screen
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.25).round()), BlendMode.screen), // Increased opacity
                       child: Container(color: Colors.transparent),
                     ),
                   ),
@@ -621,13 +580,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Surface Glare (from CSS)
               Transform.translate(
-                offset: Offset(-holoShiftX * 0.5, -holoShiftY * 0.5), // Less parallax for glare
+                offset: Offset(-holoShiftX * 0.6, -holoShiftY * 0.6), // Increased parallax for glare
                 child: Transform.scale(
                   scale: 2.0, // Simulate background-size: 200%
                   child: Container(
                     decoration: BoxDecoration(gradient: surfaceGlareGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withOpacity(0.1), BlendMode.overlay), // mix-blend-mode: overlay
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.overlay), // Increased opacity
                       child: Container(color: Colors.transparent),
                     ),
                   ),

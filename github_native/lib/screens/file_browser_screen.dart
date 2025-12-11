@@ -17,7 +17,7 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
   final GitHubService _githubService = GitHubService();
   late Future<List<RepositoryContent>> _contentsFuture;
   String _currentPath = '';
-  List<String> _pathHistory = [];
+  final List<String> _pathHistory = [];
 
   @override
   void initState() {
@@ -60,21 +60,25 @@ class _FileBrowserScreenState extends State<FileBrowserScreen> {
     }
   }
 
-  bool _onWillPop() {
+  void _handlePopInvoked(bool didPop, dynamic result) {
+    if (didPop) {
+      // If true, the system is already handling the pop, nothing to do here.
+      return;
+    }
+    // If false, the pop was blocked (canPop was false), so we handle it ourselves
     if (_pathHistory.isNotEmpty) {
       setState(() {
         _currentPath = _pathHistory.removeLast();
       });
       _fetchContents();
-      return false; // Do not pop the route
     }
-    return true; // Pop the route
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => _onWillPop(),
+    return PopScope(
+      canPop: _pathHistory.isEmpty, // Allow pop only if path history is empty
+      onPopInvokedWithResult: _handlePopInvoked,
       child: Scaffold(
         appBar: AppBar(
           title: Text('${widget.repoName} / $_currentPath'),
