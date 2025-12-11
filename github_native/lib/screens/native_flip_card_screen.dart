@@ -676,30 +676,32 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
   Widget _buildHologramEffect(double borderRadius) {
     // Implementing multiple hologram layers as per the HTML/CSS
-    final double holoShiftX = _currentDx * 20.0; // depth * 20 (increased sensitivity)
-    final double holoShiftY = _currentDy * 20.0;
+    final double holoShiftX = _currentDx * 30.0; // Increased sensitivity for more depth
+    final double holoShiftY = _currentDy * 30.0;
 
-    // Holo-gradient from CSS - slightly more vibrant accent
+    // Holo-gradient from CSS - more vibrant and colorful
     final holoGradient = LinearGradient(
-      begin: Alignment.topLeft, // Corresponds to 115deg roughly
+      begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
         Colors.transparent,
-        _accentColor.withAlpha((255 * 0.15).round()), // Slightly increased opacity
-        Colors.white.withAlpha((255 * 0.35).round()), // Slightly increased opacity
-        _accentColor.withAlpha((255 * 0.15).round()), // Slightly increased opacity
+        _accentColor.withAlpha((255 * 0.2).round()),
+        Colors.purple.withAlpha((255 * 0.15).round()),
+        Colors.green.withAlpha((255 * 0.1).round()),
+        Colors.white.withAlpha((255 * 0.25).round()),
+        _accentColor.withAlpha((255 * 0.2).round()),
         Colors.transparent,
       ],
-      stops: const [0.30, 0.45, 0.50, 0.55, 0.70],
+      stops: const [0.2, 0.35, 0.45, 0.5, 0.55, 0.65, 0.8],
     );
 
-    // Surface Glare gradient from CSS - slightly more prominent
+    // Surface Glare gradient from CSS
     final surfaceGlareGradient = LinearGradient(
-      begin: Alignment.topLeft, // Corresponds to 115deg
+      begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
         Colors.transparent,
-        Colors.white.withAlpha((255 * 0.5).round()), // Slightly increased opacity
+        Colors.white.withAlpha((255 * 0.5).round()),
         Colors.transparent,
       ],
       stops: const [0.4, 0.5, 0.6],
@@ -713,15 +715,14 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
           child: Stack(
             children: [
               // Layer 1: Base Hologram Gradient
-              // Simulate background-size: 200% 200% by scaling up the container
               Transform.translate(
-                offset: Offset(-holoShiftX * 0.8, -holoShiftY * 0.8), // Increased depth
+                offset: Offset(-holoShiftX * 0.8, -holoShiftY * 0.8),
                 child: Transform.scale(
-                  scale: 2.0, // Simulate background-size: 200%
+                  scale: 2.5,
                   child: Container(
                     decoration: BoxDecoration(gradient: holoGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.screen), // Increased opacity
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.2).round()), BlendMode.screen),
                       child: Container(color: Colors.transparent),
                     ),
                   ),
@@ -729,13 +730,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Layer 2: Deeper Parallax
               Transform.translate(
-                offset: Offset(-holoShiftX * 1.1, -holoShiftY * 1.1), // Increased depth
+                offset: Offset(-holoShiftX * 1.2, -holoShiftY * 1.2),
                 child: Transform.scale(
-                  scale: 2.0, // Simulate background-size: 200%
+                  scale: 2.5,
                   child: Container(
                     decoration: BoxDecoration(gradient: holoGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.2).round()), BlendMode.screen), // Increased opacity
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.25).round()), BlendMode.softLight),
                       child: Container(color: Colors.transparent),
                     ),
                   ),
@@ -743,13 +744,27 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Layer 3: Even Deeper Parallax
                Transform.translate(
-                offset: Offset(-holoShiftX * 1.4, -holoShiftY * 1.4), // Increased depth
+                offset: Offset(-holoShiftX * 1.6, -holoShiftY * 1.6),
                 child: Transform.scale(
-                  scale: 2.0, // Simulate background-size: 200%
+                  scale: 2.5,
                   child: Container(
                     decoration: BoxDecoration(gradient: holoGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.25).round()), BlendMode.screen), // Increased opacity
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.3).round()), BlendMode.screen),
+                      child: Container(color: Colors.transparent),
+                    ),
+                  ),
+                ),
+              ),
+              // Layer 4: Deepest Parallax
+               Transform.translate(
+                offset: Offset(-holoShiftX * 2.0, -holoShiftY * 2.0),
+                child: Transform.scale(
+                  scale: 2.5,
+                  child: Container(
+                    decoration: BoxDecoration(gradient: holoGradient),
+                    child: ColorFiltered(
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.softLight),
                       child: Container(color: Colors.transparent),
                     ),
                   ),
@@ -757,13 +772,13 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
               ),
               // Surface Glare (from CSS)
               Transform.translate(
-                offset: Offset(-holoShiftX * 0.6, -holoShiftY * 0.6), // Increased parallax for glare
+                offset: Offset(-holoShiftX * 0.6, -holoShiftY * 0.6),
                 child: Transform.scale(
-                  scale: 2.0, // Simulate background-size: 200%
+                  scale: 2.0,
                   child: Container(
                     decoration: BoxDecoration(gradient: surfaceGlareGradient),
                     child: ColorFiltered(
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.overlay), // Increased opacity
+                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.15).round()), BlendMode.overlay),
                       child: Container(color: Colors.transparent),
                     ),
                   ),
