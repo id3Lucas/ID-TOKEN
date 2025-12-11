@@ -111,3 +111,26 @@ Despite these changes, the `flutter run` command still attempts to launch the ap
 
 - The Flutter SDK is not in the system's `PATH`.
 - To run the application, the full path to the executable must be used: `C:\Users\llhuillier\Desktop\flutter\bin\flutter.bat run`.
+
+## Development History (Session of 2025-12-11)
+
+**Goal:** Analyze the `github_native` project for best practices and refactor key components.
+
+1.  **Code Analysis:**
+    - Ran `flutter analyze` on the `github_native` project.
+    - Identified **23 issues**, including critical compilation errors (duplicate methods, undefined variables from dead hologram code) and deprecations (`Color.withOpacity`).
+
+2.  **Refactoring `NativeFlipCardScreen`:**
+    - Addressed the large file size (~700 lines) of `native_flip_card_screen.dart`.
+    - **Refactored** the widget by extracting the front and back card layouts into dedicated widgets:
+        - `lib/widgets/native_id_card_front.dart` (`NativeIDCardFront`)
+        - `lib/widgets/native_id_card_back.dart` (`NativeIDCardBack`)
+    - **Cleaned Up:** Removed the duplicate `_handleFlip` and `dispose` methods and the undefined `_buildHologramEffect` code.
+    - **Modernized:** Replaced deprecated `withOpacity(val)` calls with `withValues(alpha: val)`.
+
+3.  **UI Fixes:**
+    - **Border Radius Issue:** Fixed an issue where the card's gradient background overflowed the rounded corners. Wrapped the card content in a `ClipRRect` within `native_flip_card_screen.dart` to enforce the border radius.
+
+4.  **Verification:**
+    - Re-ran `flutter analyze` after refactoring.
+    - **Result:** **0 issues found**. The project is now clean and follows better architectural practices.
