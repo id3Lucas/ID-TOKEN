@@ -43,6 +43,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
   late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
   late StreamSubscription<AccelerometerEvent> _accelerometerSubscription; // For orientation data (beta/gamma)
+  DateTime _lastLogTime = DateTime.now();
 
   @override
   void initState() {
@@ -79,58 +80,31 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   void _handleAccelerometer(AccelerometerEvent event) {
     developer.log('Accelerometer: x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
 
-    // Simulate DeviceOrientationEvent.beta and gamma using accelerometer data
-    // This is a simplification. Actual DeviceOrientationEvent uses different sensors.
-    // However, for tilt-based parallax, accelerometer is a good approximation.
+    // Re-calibrating the sensor processing based on the original JS logic.
+    // The original JS uses event.gamma and event.beta from DeviceOrientationEvent.
+    // A direct 1-to-1 mapping with AccelerometerEvent is not perfect, but we can approximate the behavior.
 
-    // Map accelerometer x to gamma, and y to beta (roughly)
-    double rawGamma = event.x; // Corresponds to gamma (left-right tilt)
-    double rawBeta = event.y;  // Corresponds to beta (front-back tilt)
-
-    // Normalize raw values to a range like -1 to 1 based on max tilt
-    // Max acceleration is approx 9.8 (g), so normalize by that.
-    rawGamma = rawGamma / 9.8;
-    rawBeta = rawBeta / 9.8;
+    // The original JS normalizes by dividing by 45. Let's try a similar approach.
+    // A raw accelerometer value of around 2-3 m/s^2 is a gentle tilt.
+    // Dividing by 45 would make this very small. Let's try a less aggressive scaling.
+    double g = event.x / 5.0; // Corresponds to gamma (left-right tilt), scaled.
+    double b = event.y / 5.0; // Corresponds to beta (front-back tilt), scaled.
 
     // Clamp values to -1 to 1 range
-    rawGamma = math.max(-1.0, math.min(1.0, rawGamma));
-    rawBeta = math.max(-1.0, math.min(1.0, rawBeta));
-
-    developer.log('rawGamma: ${rawGamma.toStringAsFixed(3)}, rawBeta: ${rawBeta.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
-
-    // The JS `handleOrientation` uses gamma and beta directly.
-    // Flutter's orientation (portrait/landscape) can be obtained via MediaQuery
-    // However, the JS explicitly uses `screen.orientation.angle` which is specific to web.
-    // For Flutter, we will approximate by using the device orientation from build context.
+    g = g.clamp(-1.0, 1.0);
+    b = b.clamp(-1.0, 1.0);
+    
+    developer.log('g: ${g.toStringAsFixed(3)}, b: ${b.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
 
     final currentOrientation = MediaQuery.of(context).orientation;
-    double g = rawGamma; // event.gamma in JS
-    double b = rawBeta;  // event.beta in JS
-
     double rawDx = 0, rawDy = 0;
 
-    // Replicating JS angle logic
-    // const angle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-    // if (angle === 90) { rawDx = b; rawDy = -g; }
-    // else if (angle === -90 || angle === 270) { rawDx = -b; rawDy = g; }
-    // else { rawDx = g; rawDy = b; }
-    // Based on my experience and typical sensor mapping, for Flutter we might adjust this.
-    // For now, let's keep it simple and assume portrait-like mapping, or
-    // directly use raw values if the JS logic is more about remapping physical tilt to screen X/Y.
-
-    // After reviewing the JS logic: it maps device tilt to screen-relative X/Y for parallax.
-    // In Flutter, with an always-portrait-up perspective for the card, we can directly map.
-    // Or, more accurately, we need to convert device orientation to screen orientation.
-
-    // Let's simplify for now to get some movement.
-    // We will use rawDx = -b and rawDy = g for portrait, and adjust based on landscape.
+    // The original JS logic has a complex remapping based on screen angle.
+    // Let's use a simplified but effective mapping for portrait and landscape.
     if (currentOrientation == Orientation.portrait) {
-      rawDx = -b; // Tilt front/back maps to vertical movement, so reversed
-      rawDy = g;  // Tilt left/right maps to horizontal movement
+      rawDx = g;
+      rawDy = b;
     } else { // Landscape
-      // Need to adjust this based on how the device is held in landscape
-      // For now, let's keep it simple, assume landscape left.
-      // JS has: angle === 90 -> rawDx = b; rawDy = -g;
       rawDx = b;
       rawDy = -g;
     }
@@ -141,12 +115,8 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     _filteredDx = _filteredDx * (1 - _gyroFilterFactor) + rawDx * _gyroFilterFactor;
     _filteredDy = _filteredDy * (1 - _gyroFilterFactor) + rawDy * _gyroFilterFactor;
 
-    // Normalize filtered values to a range (e.g., -1 to 1) for consistent parallax
-    double normalizedDx = _filteredDx; // The JS version normalizes after filtering and angle. My previous had a /_movementSensitivity here.
+    double normalizedDx = _filteredDx;
     double normalizedDy = _filteredDy;
-
-    normalizedDx = math.max(-1.0, math.min(1.0, normalizedDx));
-    normalizedDy = math.max(-1.0, math.min(1.0, normalizedDy));
 
     final double diffX = (normalizedDx - _currentDx).abs();
     final double diffY = (normalizedDy - _currentDy).abs();
@@ -162,7 +132,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
     _targetDx = normalizedDx;
     _targetDy = normalizedDy;
-    _targetHoloOpacity = math.min(1.0, movementSpeed * _movementSensitivity); // JS uses MOVEMENT_SENSITIVITY here for opacity
+    _targetHoloOpacity = math.min(1.0, movementSpeed * _movementSensitivity);
 
     developer.log('TargetHoloOpacity: ${_targetHoloOpacity.toStringAsFixed(3)} (MovementSpeed: ${movementSpeed.toStringAsFixed(3)})', name: 'NativeFlipCardScreen');
 
@@ -181,7 +151,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
     setState(() {
       _currentDx += (_targetDx - _currentDx) * 0.1; // posEasing
       _currentDy += (_targetDy - _currentDy) * 0.1; // posEasing
-      _holoOpacity += (_targetHoloOpacity - _holoOpacity) * 0.15; // opacityEasing
+      _holoOpacity += (_targetHoloOpacity - _holoOpacity) * 0.05; // Slower opacityEasing
     });
   }
 
@@ -738,53 +708,26 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   }
 
   Widget _buildHologramEffect(double borderRadius) {
-    // Hologram layers data based on JS layerData
-    final List<Map<String, dynamic>> jsLayerData = [
-      {'class': 'pattern-hex', 'depth': 1.5, 'isGradient': false},
-      {'class': 'pattern-text', 'depth': 3.0, 'isGradient': false},
-      {'class': 'pattern-wave', 'depth': 2.0, 'isGradient': false}, // Default depth for pattern-wave from JS is 2
-      {'class': 'holo-gradient', 'depth': 5.0, 'isGradient': true},
-    ];
-
-    // Glare properties
-    final double glareParallaxMultiplier = 30.0; // From JS
-    final double layerParallaxMultiplier = 5.0; // From JS
-    final double opacityVal = _holoOpacity * _holoIntensity;
-
-    // Glare shift values
-    final double glareX = _currentDx * glareParallaxMultiplier;
-    final double glareY = _currentDy * glareParallaxMultiplier;
-
-    // Holo-gradient from CSS
-    final holoGradient = LinearGradient(
-      begin: Alignment(math.cos(115 * math.pi / 180), math.sin(115 * math.pi / 180)),
-      end: Alignment.bottomRight,
+    // A more authentic holographic gradient with a rainbow sheen
+    final holoSecurityGradient = LinearGradient(
+      begin: Alignment(-1.0 - (_currentDx * 1.5), -1.0 - (_currentDy * 1.5)),
+      end: Alignment(1.0 - (_currentDx * 1.5), 1.0 - (_currentDy * 1.5)),
       colors: [
-        Colors.transparent,
-        _accentColor.withAlpha((255 * 0.1).round()),
-        Colors.white.withAlpha((255 * 0.3).round()),
-        _accentColor.withAlpha((255 * 0.1).round()),
-        Colors.transparent,
+        Colors.red.withOpacity(0.3),
+        Colors.yellow.withOpacity(0.3),
+        Colors.green.withOpacity(0.3),
+        Colors.blue.withOpacity(0.3),
+        Colors.indigo.withOpacity(0.3),
+        Colors.purple.withOpacity(0.3),
+        Colors.red.withOpacity(0.3),
       ],
-      stops: const [0.30, 0.45, 0.50, 0.55, 0.70],
-    );
-
-    // Surface Glare gradient from CSS
-    final surfaceGlareGradient = LinearGradient(
-      begin: Alignment(math.cos(115 * math.pi / 180), math.sin(115 * math.pi / 180)),
-      end: Alignment.bottomRight,
-      colors: [
-        Colors.transparent,
-        Colors.white.withAlpha((255 * 0.4).round()),
-        Colors.transparent,
-      ],
-      stops: const [0.4, 0.5, 0.6],
+      stops: const [0.0, 0.16, 0.33, 0.5, 0.66, 0.83, 1.0],
     );
 
     // SVG Data URLs for patterns
     const String patternHexSvg = """
       <svg width='40' height='70' viewBox='0 0 40 70' xmlns='http://www.w3.org/2000/svg'>
-        <g fill='none' stroke='rgba(0, 242, 255, 0.5)' stroke-width='1'>
+        <g fill='none' stroke='rgba(255, 255, 255, 0.2)' stroke-width='1'>
           <path d='M20 5 L35 15 L35 35 L20 45 L5 35 L5 15 Z' />
         </g>
       </svg>
@@ -792,7 +735,7 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
 
     const String patternTextSvg = """
       <svg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'>
-        <text x='50' y='50' font-family='Arial' font-weight='bold' font-size='12' fill='rgba(255,255,255,0.3)' text-anchor='middle' transform='rotate(-45 50 50)'>ID TOKEN</text>
+        <text x='50' y='50' font-family='Arial' font-weight='bold' font-size='12' fill='rgba(255,255,255,0.2)' text-anchor='middle' transform='rotate(-45 50 50)'>ID TOKEN</text>
       </svg>
     """;
 
@@ -800,105 +743,54 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Opacity(
-          opacity: opacityVal, // Main hologram opacity controlled by movement
-          child: ColorFiltered(
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.colorDodge), // .hologram-container mix-blend-mode
+          opacity: _holoOpacity * 0.7, // Control the overall visibility
+          child: ShaderMask(
+            shaderCallback: (bounds) {
+              return holoSecurityGradient.createShader(bounds);
+            },
+            blendMode: BlendMode.srcIn, // Apply the gradient to the patterns
             child: Stack(
-              children: jsLayerData.map((layer) {
-                final double depth = layer['depth'];
-                final bool isGradient = layer['isGradient'];
-                final String className = layer['class'];
-
-                final double sx = _currentDx * depth * layerParallaxMultiplier;
-                final double sy = _currentDy * depth * layerParallaxMultiplier;
-
-                Widget layerWidget;
-                BlendMode blendMode = BlendMode.screen; // Default blend mode
-
-                switch (className) {
-                  case 'pattern-hex':
-                    blendMode = BlendMode.overlay;
-                    layerWidget = SvgPicture.string(
-                      patternHexSvg,
-                      width: 40,
-                      height: 70,
-                      fit: BoxFit.fill,
-                      colorFilter: ColorFilter.mode(_accentColor.withAlpha((255 * 0.5).round()), BlendMode.srcIn),
-                    );
-                    break;
-                  case 'pattern-text':
-                    blendMode = BlendMode.softLight;
-                    layerWidget = SvgPicture.string(
-                      patternTextSvg,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.fill,
-                      colorFilter: ColorFilter.mode(Colors.white.withAlpha((255 * 0.3).round()), BlendMode.srcIn),
-                    );
-                    break;
-                  case 'pattern-wave':
-                    blendMode = BlendMode.screen;
-                    layerWidget = Container(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          center: Alignment.center,
-                          radius: 0.5,
-                          colors: [
-                            Colors.transparent,
-                            Colors.white.withAlpha((255 * 0.1).round()), // rgba(255, 255, 255, 0.1)
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.05, 0.2],
-                        ),
-                      ),
-                    );
-                    break;
-                  case 'holo-gradient':
-                    blendMode = BlendMode.screen;
-                    layerWidget = Container(
-                      decoration: BoxDecoration(gradient: holoGradient),
-                    );
-                    break;
-                  default:
-                    layerWidget = Container();
-                }
-
-                // Apply specific opacity for gradient layer as per JS
-                final double currentLayerOpacity = isGradient ? (opacityVal * 0.7) : opacityVal;
-
-                return Transform.translate(
-                  offset: Offset(-sx, -sy),
+              fit: StackFit.expand,
+              children: [
+                // Pattern Layers
+                Transform.translate(
+                  offset: Offset(-_currentDx * 20, -_currentDy * 20),
                   child: Transform.scale(
-                    scale: 2.0, // background-size: 200% 200% is common for all
-                    child: Opacity(
-                      opacity: currentLayerOpacity,
-                      child: ColorFiltered(
-                        colorFilter: ColorFilter.mode(Colors.white, blendMode),
-                        child: SizedBox.expand(
-                          child: layerWidget,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList()
-                ..add( // Add Surface Glare separately
-                  Transform.translate(
-                    offset: Offset(glareX, glareY),
-                    child: Transform.scale(
-                      scale: 2.0,
-                      child: Opacity(
-                        opacity: opacityVal, // Glare opacity
-                        child: ColorFiltered(
-                          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.overlay),
-                          child: Container(
-                            decoration: BoxDecoration(gradient: surfaceGlareGradient),
-                          ),
-                        ),
-                      ),
+                    scale: 3,
+                    child: SvgPicture.string(
+                      patternHexSvg,
+                      fit: BoxFit.none,
                     ),
                   ),
                 ),
+                Transform.translate(
+                  offset: Offset(-_currentDx * 40, -_currentDy * 40),
+                  child: Transform.scale(
+                    scale: 4,
+                    child: SvgPicture.string(
+                      patternTextSvg,
+                      fit: BoxFit.none,
+                    ),
+                  ),
+                ),
+                // Surface Glare
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withOpacity(0.5),
+                        Colors.white.withOpacity(0.2),
+                        Colors.transparent,
+                        Colors.white.withOpacity(0.2),
+                        Colors.white.withOpacity(0.5),
+                      ],
+                      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
