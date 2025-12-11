@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
-import 'dart:async'; // Import for StreamSubscription
 import 'package:flutter_svg/flutter_svg.dart'; // Import for SVG support
-import 'dart:developer' as developer;
 
 class NativeFlipCardScreen extends StatefulWidget {
   final String fileName; // Optional: to display file name in AppBar
@@ -26,25 +23,6 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   static const Color _textColor = Color(0xFFE0F7FA); // --text-color
   static const Color _darkGreyColor = Color(0xFF05050A); // rgba(5, 5, 10, 1)
 
-  double _currentDx = 0.0;
-  double _currentDy = 0.0;
-  double _targetDx = 0.0;
-  double _targetDy = 0.0;
-  double _filteredDx = 0.0;
-  double _filteredDy = 0.0;
-
-  double _holoOpacity = 0.0;
-  double _targetHoloOpacity = 0.0;
-
-  final double _gyroFilterFactor = 0.1;
-  final double _movementSensitivity = 5.0; // Reverted to original JS value
-  final double _speedThreshold = 0.15; // Reverted to original JS value
-  final double _holoIntensity = 0.5;
-
-  late StreamSubscription<GyroscopeEvent> _gyroscopeSubscription;
-  late StreamSubscription<AccelerometerEvent> _accelerometerSubscription; // For orientation data (beta/gamma)
-  DateTime _lastLogTime = DateTime.now();
-
   @override
   void initState() {
     super.initState();
@@ -59,100 +37,22 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
         curve: Curves.easeInOut,
       ),
     );
-
-    _setupMotionDetection();
   }
 
-  void _setupMotionDetection() {
-    developer.log('Setting up motion detection...', name: 'NativeFlipCardScreen');
-    // Subscribe to gyroscope events
-    _gyroscopeSubscription = gyroscopeEventStream(samplingPeriod: const Duration(microseconds: 60000)).listen((GyroscopeEvent event) {
-      // For gyroscope events, we only care about the event itself to trigger the animation
-      // The actual values for currentDx/Dy are derived from Accelerometer events
-    });
-
-    // Subscribe to accelerometer events for device orientation (beta/gamma equivalent)
-    _accelerometerSubscription = accelerometerEventStream(samplingPeriod: const Duration(microseconds: 60000)).listen((AccelerometerEvent event) {
-      _handleAccelerometer(event);
-    });
-  }
-
-  void _handleAccelerometer(AccelerometerEvent event) {
-    developer.log('Accelerometer: x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
-
-    // Re-calibrating the sensor processing based on the original JS logic.
-    // The original JS uses event.gamma and event.beta from DeviceOrientationEvent.
-    // A direct 1-to-1 mapping with AccelerometerEvent is not perfect, but we can approximate the behavior.
-
-    // The original JS normalizes by dividing by 45. Let's try a similar approach.
-    // A raw accelerometer value of around 2-3 m/s^2 is a gentle tilt.
-    // Dividing by 45 would make this very small. Let's try a less aggressive scaling.
-    double g = event.x / 5.0; // Corresponds to gamma (left-right tilt), scaled.
-    double b = event.y / 5.0; // Corresponds to beta (front-back tilt), scaled.
-
-    // Clamp values to -1 to 1 range
-    g = g.clamp(-1.0, 1.0);
-    b = b.clamp(-1.0, 1.0);
-    
-    developer.log('g: ${g.toStringAsFixed(3)}, b: ${b.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
-
-    final currentOrientation = MediaQuery.of(context).orientation;
-    double rawDx = 0, rawDy = 0;
-
-    // The original JS logic has a complex remapping based on screen angle.
-    // Let's use a simplified but effective mapping for portrait and landscape.
-    if (currentOrientation == Orientation.portrait) {
-      rawDx = g;
-      rawDy = b;
-    } else { // Landscape
-      rawDx = b;
-      rawDy = -g;
-    }
-
-    developer.log('rawDx: ${rawDx.toStringAsFixed(3)}, rawDy: ${rawDy.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
-
-    // Filter to smooth out jitter
-    _filteredDx = _filteredDx * (1 - _gyroFilterFactor) + rawDx * _gyroFilterFactor;
-    _filteredDy = _filteredDy * (1 - _gyroFilterFactor) + rawDy * _gyroFilterFactor;
-
-    double normalizedDx = _filteredDx;
-    double normalizedDy = _filteredDy;
-
-    final double diffX = (normalizedDx - _currentDx).abs();
-    final double diffY = (normalizedDy - _currentDy).abs();
-    double movementSpeed = diffX + diffY;
-
-    developer.log('MovementSpeed before threshold: ${movementSpeed.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
-
-    if (movementSpeed < _speedThreshold) {
-      movementSpeed = 0;
+  void _handleFlip() {
+    if (_flipController.isAnimating) return;
+    if (_isFront) {
+      _flipController.forward();
     } else {
-      movementSpeed = movementSpeed - _speedThreshold;
+      _flipController.reverse();
     }
-
-    _targetDx = normalizedDx;
-    _targetDy = normalizedDy;
-    _targetHoloOpacity = math.min(1.0, movementSpeed * _movementSensitivity);
-
-    developer.log('TargetHoloOpacity: ${_targetHoloOpacity.toStringAsFixed(3)} (MovementSpeed: ${movementSpeed.toStringAsFixed(3)})', name: 'NativeFlipCardScreen');
-
-    _updateHologramAnimation();
+    _isFront = !_isFront;
   }
 
-  void _handleGyroscope(GyroscopeEvent event) {
-    // We are no longer using Gyroscope events for dx/dy calculation directly for parallax.
-    // We will use Accelerometer events for that, similar to DeviceOrientationEvent in JS.
-    // However, this event stream can still be used as a trigger for hologram visibility if needed.
-    // For now, we rely on Accelerometer for movement and opacity.
-    developer.log('Gyroscope data (not used for parallax currently): x=${event.x.toStringAsFixed(3)}, y=${event.y.toStringAsFixed(3)}, z=${event.z.toStringAsFixed(3)}', name: 'NativeFlipCardScreen');
-  }
-
-  void _updateHologramAnimation() {
-    setState(() {
-      _currentDx += (_targetDx - _currentDx) * 0.1; // posEasing
-      _currentDy += (_targetDy - _currentDy) * 0.1; // posEasing
-      _holoOpacity += (_targetHoloOpacity - _holoOpacity) * 0.05; // Slower opacityEasing
-    });
+  @override
+  void dispose() {
+    _flipController.dispose();
+    super.dispose();
   }
 
 
@@ -801,7 +701,6 @@ class _NativeFlipCardScreenState extends State<NativeFlipCardScreen> with Single
   @override
   void dispose() {
     _flipController.dispose();
-    _gyroscopeSubscription.cancel();
     super.dispose();
   }
 }
